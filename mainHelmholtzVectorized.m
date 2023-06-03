@@ -6,12 +6,13 @@ origu = @(x,y,a,b) (cos(a.*x+b.*y)+1i.*sin(a.*x + b.*y));
 gradu = @(x, y, a, b, k) [-a*sin(a*x+b*y)+1i*a*cos(a*x + b*y), -b*sin(a*x + b*y) + 1i*b*cos(a*x + b*y)];
 realf = @(x,y,a,b, kappa) -(a^2+b^2)*(cos(a*x + b*y) + 1i*sin(a*x+b*y)) + kappa^2*(cos(a*x+b*y)+1i*sin(a*x+b*y));
 
+% our domain
 bcenter = [1/2,1/2];
 brad = 1/2;
 
 % use the built-in meshing of MATLAB, we just have to cast the mesh into
 % our structure then
-H_max = 0.005;   
+H_max = 0.015;   
 H_min = 0.002;
 domain = [1, bcenter, brad];
 elements = createMesh(domain, H_max, H_min);
@@ -26,7 +27,7 @@ elements.nodeIndex = elements.tri;
 % populate triangles, this is still needed... (not nice)
 elements.triangles = populateTriangles(elements);
 
-kappa= 20;
+kappa = 20;
 beta = 1;
 
 f = @(x,y) realf(x,y,kappa*cos(pi/2),kappa*sin(pi/2), kappa);
