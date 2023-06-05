@@ -36,15 +36,15 @@ excitation = 20*ones(n,1); %constant excitation?
 
 p1 = solveHelmholtzVectorizedTmp(elements, omega, kappa, beta, excitation, h, g, n);
 
-figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(p1), 'facecolor', 'interp'); shading interp;
-title("Real part of the FEM solution using linear lagrange elements.")
-xlabel('x');
-ylabel('y');
+% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(p1), 'facecolor', 'interp'); shading interp;
+% title("Real part of p_1(x).")
+% xlabel('x');
+% ylabel('y');
 
-figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), imag(p1), 'facecolor', 'interp'); shading interp;
-title("Imag part of the FEM solution using linear lagrange elements.")
-xlabel('x');
-ylabel('y');
+% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), imag(p1), 'facecolor', 'interp'); shading interp;
+% title("Imag part of the FEM solution using linear lagrange elements.")
+% xlabel('x');
+% ylabel('y');
 
 
 % now compute the solutions for the harmonic frequencies
@@ -65,6 +65,7 @@ for j = 1:(nHarmonics)
     m = j + 1;
     % not nice
     p_i = zeros(1,n);
+
     for i = 1:j
         p_i = p_i + p(i,:).*p(m-j,:);
     end
@@ -73,8 +74,8 @@ for j = 1:(nHarmonics)
 end
 
 %%
-figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
-title("Scatterers.")
+% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
+% title("Scatterers.")
 
 boundaryIndices = elements.bedges(:,1);
 
