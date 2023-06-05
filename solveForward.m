@@ -61,11 +61,14 @@ for i=1:n
     end
 end
 
+% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
+% title("Scatterers.")
+
 for j = 1:(nHarmonics)
     m = j + 1;
     % not nice
     p_i = ones(1,n);
-
+    % TODO: vectorize
      for i = 1:j
          p_i = p_i + p(i,:).*p(m-j,:);
      end
@@ -74,9 +77,6 @@ for j = 1:(nHarmonics)
 end
 
 %%
-% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
-% title("Scatterers.")
-
 boundaryIndices = elements.bedges(:,1);
 
 end
