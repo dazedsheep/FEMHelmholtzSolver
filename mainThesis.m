@@ -1,10 +1,10 @@
 clear all
 
-% center frequency of ultrasound
+% speef of sounde
 speed_of_sound = 1540; % m/s
 
-% 20 kHz
-% f = 20*10^3;
+
+% signal period or cener frequency
 T = 10^-4;
 w = 2*pi*1/T;
 
@@ -18,10 +18,6 @@ domain = [bcenter, brad];
 values = [20, 30];
 radii = [1/10, 1/20];
 centers = [1/4, 3/4; 1/4, 3/4];
-
-% values = [5];
-% radii = [1/10];
-% centers = [1/4; 1/4];
 
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
 % of sound, we set b=0, neglecting the diffusitivity of sound
