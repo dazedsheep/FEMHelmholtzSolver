@@ -1,5 +1,4 @@
-clear all
-
+clearvars
 % speef of sounde
 speed_of_sound = 1540; % m/s
 
