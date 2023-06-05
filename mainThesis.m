@@ -30,14 +30,14 @@ kappa = w/speed_of_sound;
 nHarmonics = 4;
 [boundaryIndices, elements, U] = generateBoundaryData(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
 %%
-%T = 10;
-t_step = 0.01;
+
+t_step = 0.005;
 n_t = floor(2*pi/t_step);
 
 tind = 0:t_step:2*pi;
 
 % construct p(t,x)
-z = repmat(exp(1i.*w.*T.*tind)', 1, size(U,2));
+z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
 pC = zeros(size(z,1), size(z,2));
 
 for k=1:nHarmonics
@@ -46,7 +46,7 @@ end
 
 p = real(pC);
 
-%% let's take a look at p(t,x) playback the periodic solution
+%% let's take a look at p(t,x); playback the periodic solution
 figure;
 for i=1:n_t
     trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), p(i,:), 'facecolor', 'interp'); shading interp;
