@@ -64,13 +64,13 @@ end
 for j = 1:(nHarmonics)
     m = j + 1;
     % not nice
-    p_i = zeros(1,n);
+    p_i = ones(1,n);
 
-    for i = 1:j
-        p_i = p_i + p(i,:).*p(m-j,:);
-    end
+     for i = 1:j
+         p_i = p_i + p(i,:).*p(m-j,:);
+     end
 
-    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, m*kappa, beta, f.*m^2.*kappa^2.*p_i', h, g, n);
+    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, m*kappa, beta, -f.*m^2.*kappa^2.*p_i', h, g, n);
 end
 
 %%

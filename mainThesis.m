@@ -23,7 +23,7 @@ centers = [1/4, 3/4; 1/4, 3/4];
 % of sound, we set b=0, neglecting the diffusitivity of sound
 kappa = w/speed_of_sound;
 
-nHarmonics = 4;
+nHarmonics = 5;
 [boundaryIndices, elements, U] = generateBoundaryData(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
 %%
 
@@ -50,3 +50,17 @@ for i=1:n_t
     drawnow
     pause(0.1)
 end
+
+%% inspect specific harmonics
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(U(1,:)), 'facecolor', 'interp'); shading interp;
+title("Real part of p_1(x).")
+xlabel('x');
+ylabel('y');
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(U(2,:)), 'facecolor', 'interp'); shading interp;
+title("Real part of p_2(x).")
+xlabel('x');
+ylabel('y');
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(U(3,:)), 'facecolor', 'interp'); shading interp;
+title("Real part of p_3(x).")
+xlabel('x');
+ylabel('y');
