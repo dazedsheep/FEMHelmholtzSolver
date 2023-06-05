@@ -67,7 +67,7 @@ end
 for j = 1:(nHarmonics)
     m = j + 1;
     % not nice
-    p_i = ones(1,n);
+    p_i = zeros(1,n);
     % TODO: vectorize
      for i = 1:j
          p_i = p_i + p(i,:).*p(m-j,:);
