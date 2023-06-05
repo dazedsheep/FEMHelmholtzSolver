@@ -24,7 +24,7 @@ centers = [1/4, 3/4; 1/4, 3/4];
 kappa = w/speed_of_sound;
 
 nHarmonics = 5;
-[boundaryIndices, elements, U] = generateBoundaryData(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
+[boundaryIndices, elements, U] = solveForward(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
 %%
 
 t_step = 0.005;

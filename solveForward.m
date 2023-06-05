@@ -1,4 +1,4 @@
-function [boundaryIndices, elements, p] = generateBoundaryData(c, omega, waveNumber, center, radii, sourceValues, domain, nHarmonics)
+function [boundaryIndices, elements, p] = solveForward(c, omega, waveNumber, center, radii, sourceValues, domain, nHarmonics)
 %% this function generates boundary data for given point sources in a ball 
 
 H_max = 0.005;   
