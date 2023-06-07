@@ -1,6 +1,5 @@
 function [boundaryIndices, elements, p] = solveForward(c, omega, waveNumber, center, radii, sourceValues, domain, nHarmonics)
 %% this function generates boundary data for given point sources in a ball 
-
 H_max = 0.005;   
 H_min = 0.002;
 
@@ -53,15 +52,15 @@ p = zeros(nHarmonics+1, n);
 p(1,:) = p1;
 f = zeros(n,1);
 % construct our f
-for i=1:n
-    for j=1:size(center,2)
-        if norm(elements.points(i,:) - center(:,j),2) < radii(j) 
+for j=1:size(center,2)
+    for i=1:n
+        if norm(elements.points(i,:) - center(:,j)',2) < radii(j) 
             f(i) = sourceValues(j);
         end
     end
 end
 
-% figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), f, 'facecolor', 'interp'); shading interp;
 % title("Scatterers.")
 
 for j = 1:(nHarmonics)
@@ -78,5 +77,4 @@ end
 
 %%
 boundaryIndices = elements.bedges(:,1);
-
 end
