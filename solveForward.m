@@ -31,7 +31,7 @@ h = zeros(n,1);
 g = zeros(1,n);
 
 % consider that 1/c^2 is already included
-excitation = 2*ones(n,1); %constant excitation?
+excitation = 10*ones(n,1); %constant excitation?
 
 p1 = solveHelmholtzVectorizedTmp(elements, omega, kappa, beta, -excitation, h, g, n);
 
