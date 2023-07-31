@@ -1,4 +1,4 @@
-function [U] = solveHelmholtzVectorizedTmp(elements, omega, kappa, beta, f, hI, g, n)
+function [U] = solveHelmholtzVectorizedTmp(elements, omega,gamma, kappa, beta, f, hI, g, n)
 
 hVec = zeros(n,1);
 FVec = zeros(n,1);
@@ -61,7 +61,7 @@ bcol = elements.bedges(:,[1,1,2,2]);
 tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));
 
 M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
-A = Z + 1i*beta*omega*tBM;
+A = Z + (1i*beta*omega+gamma)*tBM;
 
 % get the right hand side
 FVec(elements.nodeIndex(:,1),1) = f(elements.nodeIndex(:,1));

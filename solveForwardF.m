@@ -44,7 +44,7 @@ for j = 1:(nHarmonics)
          p_i = p_i + p(i,:).*p(m-i,:);
      end
     F(m,:) = -f.*m^2.*kappa^2.*p_i';
-    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, m*kappa, beta, -f.*m^2.*kappa^2.*p_i', h, g, n);
+    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, m*kappa, beta, -1/4.*f.*m^2.*kappa^2.*p_i.', h, g, n);
 end
 
 %%

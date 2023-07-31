@@ -1,14 +1,14 @@
-function [boundaryIndices, elements, p, F, coupling] = solveForward(c, omega, waveNumber, center, radii, sourceValues, domain, nHarmonics)
+function [boundaryIndices, elements, p, F, coupling] = solveForward(c, omega, gamma, waveNumber, center, radii, sourceValues, domain, nHarmonics)
 %% this function generates boundary data for given point sources in a ball 
 H_max = 0.005;   
 H_min = 0.005;
-
+H_edges = 0.0001;
 % our domain
 bcenter = [domain(1),domain(2)];
 brad = domain(3);
 
 domain = [1, bcenter, brad];
-elements = createMesh(domain, H_max, H_min);
+elements = createMesh(domain, H_max, H_min, H_edges);
 
 elements.nr_edges = 1:4; 
 elements.bedges = elements.edges(find(ismember(elements.edges(:,3),elements.nr_edges)),:);  % in our case these are all edges
@@ -33,7 +33,7 @@ g = zeros(1,n);
 % consider that 1/c^2 is already included
 excitation = 10*ones(n,1); %constant excitation?
 
-p1 = solveHelmholtzVectorizedTmp(elements, omega, kappa, beta, -excitation, h, g, n);
+p1 = solveHelmholtzVectorizedTmp(elements, omega, gamma, kappa, beta, -excitation, h, g, n);
 
 % figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(p1), 'facecolor', 'interp'); shading interp;
 % title("Real part of p_1(x).")
@@ -79,9 +79,9 @@ for j = 1:(nHarmonics)
      for i = 1:j
          p_i = p_i + p(i,:).*p(m-i,:);
      end
-    F(m,:) = -f.*m^2.*kappa^2.*p_i';
+    F(m,:) = 1/4.*-f.*m^2.*kappa^2.*p_i.';
     coupling(j,:) = p_i;
-    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, m*kappa, beta, -f.*m^2.*kappa^2.*p_i', h, g, n);
+    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, gamma, m*kappa, beta, -1/4.*f.*m^2.*kappa^2.*p_i.', h, g, n);
 end
 
 %%

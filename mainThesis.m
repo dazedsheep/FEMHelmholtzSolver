@@ -23,9 +23,9 @@ centers = [3/4, 3/4; 1/4, 3/4];
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
 % of sound, we set b=0, neglecting the diffusitivity of sound
 kappa = w/speed_of_sound;
-
+gamma = 1;
 nHarmonics = 7;
-[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
+[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
 
 %% disc sources
 clearvars
@@ -43,8 +43,8 @@ domain = [bcenter, brad];
 
 
 % point scatterers and their domain
-values = [300, 300];
-radii = [0.03, 0.03];
+values = [200, 400];
+radii = [0.08, 0.03];
 centers = [3/4, 3/4; 1/4, 3/4];
 
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
@@ -52,13 +52,15 @@ centers = [3/4, 3/4; 1/4, 3/4];
 kappa = w/speed_of_sound;
 
 nHarmonics = 7;
-[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, kappa, centers, radii, values, domain, nHarmonics);
+gamma = 1;
+
+[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
 
 
 %% inspect what happens to the source by the (incomplete forward)coupling
 
 % first harmonic right hand side
-figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(F(2,:)), 'facecolor', 'interp'); shading interp;
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(U(2,:)), 'facecolor', 'interp'); shading interp;
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), abs(F(2,:)), 'facecolor', 'interp'); shading interp;
 
 % second hermonic right hand side
@@ -203,86 +205,194 @@ figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),
 
 %% playground :)
 
-%% plain gradient descent for identifying sources and there values
-m = 2;
-sourcePoints = [];
-sourceValues = [];
-
-f = zeros(size(elements.points,1),1);
-y = U(2,elements.bedges(:,1));
-g = f;
-h = f;
-f(elements.bedges(:,1)) = -1i.*m.*kappa.*y;
-% K*(-y) 
-%te = solveHelmholtzVectorizedTmp(elements, m*w, m*kappa, -1/speed_of_sound, zeros(size(elements.points,1),1), f, g, size(elements.points,1));
-
-%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(te), 'facecolor', 'interp'); shading interp;
-%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(U(2,:)), 'facecolor', 'interp'); shading interp;
-
-
-for j = 1:2
-    
-    te = solveHelmholtzVectorizedTmp(elements, m*w, m*kappa, -1/speed_of_sound, zeros(size(elements.points,1),1), f, g, size(elements.points,1));
-
-    [v, pc] = max(abs(te));
-    center = elements.points(pc,:)';
-    sourcePoints = [sourcePoints center];
-    % try to maximize the centers source value ||Kx - y||^2, where x are our
-    % source values
-    v = 1;
-    F = constructF(elements, sourcePoints, zeros(size(sourcePoints,2),1), [sourceValues v]);
-    v = [sourceValues v];
-    fun = @(x) solveHelmholtzVectorizedTmp(elements, m*w, m*kappa, 1/speed_of_sound, constructF(elements, sourcePoints, zeros(size(sourcePoints,2),1), [x]).*m^2.*kappa^2.*coupling(m,:), g, g, size(elements.points,1));
-    sigma = 10^-4;
-    for k = 1:200
-        lRate = 1000./min(abs(coupling(m,:)));
-        % gradient
-        h = 0.001;
-        x = v;
-        for i=1:size(x,2)
-            e_i = zeros(1,size(x,2));
-            e_i(i) = 1;
-            y0 = fun(x-h*e_i);
-            z = (y0(elements.bedges(:,1)).' - y);
-            val0 = z*z';
-    
-    %         y0 = fun(x);
-    %         z = (y0(elements.bedges(:,1)).' - y);
-    %         val0 = z*z';
-            y1 = fun(x+h*e_i);
-            z = (y1(elements.bedges(:,1)).' - y);
-            val1 = z*z';
-            df(i,k) = 1/(2*h) *(val1 - val0);  
-        end
-        
-        direction = -df(:,k);
-        y_current = fun(x);
-        loss = (y_current(elements.bedges(:,1)).' - y)*(y_current(elements.bedges(:,1)).' - y)';
-        
-        % line search / amijo conditions
-        while 1
-            y_new = fun(x + lRate*direction');
-            loss_new = (y_new(elements.bedges(:,1)).' - y)*(y_new(elements.bedges(:,1)).' - y)';
-            if (loss_new < loss + sigma*lRate*(direction'*direction))
-                break;
-            end
-            lRate = lRate/10;
-        end
-    
-        v = x - lRate*df(:,k)';
-    end
-    
-    sourceValues = v;
-    f(elements.bedges(:,1)) = 1i.*m.*kappa.*(y_new(elements.bedges(:,1)).' - y);
-
-
-end
-% uu = solveHelmholtzVectorizedTmp(elements, m*w, m*kappa, 1/speed_of_sound, F, g, g, size(elements.points,1));
-% f(elements.bedges(:,1)) = -1i.*m.*kappa.*(uu(elements.bedges(:,1)).' - y);
-% te2 = solveHelmholtzVectorizedTmp(elements, m*w, m*kappa, -1/speed_of_sound, zeros(size(elements.points,1),1), f, g, size(elements.points,1));
 
 %% try out the predicted sources
 [boundaryIndices, elements, Uapprox, Fapprox, couplingapprox] = solveForward(speed_of_sound, w, kappa, sourcePoints, [0,0], sourceValues, domain, nHarmonics);
 
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(Uapprox(2,:)), 'facecolor', 'interp'); shading interp;
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(Uapprox(3,:)), 'facecolor', 'interp'); shading interp;
+
+%% this validates the linearity of the solution operator for m=2 :)
+
+% F(\eta^\sim) - F(\eta) = F(\eta^\sim - \eta)
+eta_sim = constructF(elements, centers(1), radii(1), values(1)*0.4);
+eta = constructF(elements, centers(1), radii(1), values(1)*0.8);
+
+m = 2;
+f = zeros(size(elements.points,1),1);
+f(elements.bedges(:,1)) = -(1i.*m.*w.*1/speed_of_sound + gamma).*U(m,elements.bedges(:,1));
+g = zeros(size(elements.points,1),1);
+f1 = solveHelmholtzVectorizedTmp(elements, 0, 0, m*kappa, 0, -(eta + eta_sim).*1/4.*m^2.*kappa^2.*coupling(m-1,:).', f, g, size(elements.points,1));
+f2 = solveHelmholtzVectorizedTmp(elements, 0, 0, m*kappa, 0, -eta.*1/4.*m^2.*kappa^2.*coupling(m-1,:).', f, g, size(elements.points,1));
+v = f1 - f2;
+
+fdiff = solveHelmholtzVectorizedTmp(elements, 0, 0, m*kappa, 0, -(eta_sim).*1/4.*m^2.*kappa^2.*coupling(m-1,:).', zeros(size(elements.points,1),1), g, size(elements.points,1));
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(te), 'facecolor', 'interp'); shading interp;
+
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(fdiff), 'facecolor', 'interp'); shading interp;
+
+sum(fdiff(elements.bedges(:,1)) .* U(2,elements.bedges(:,1))')
+
+
+
+%%
+f = zeros(size(elements.points,1),1);
+y = -U(2,:).';
+f(elements.bedges(:,1)) = -(1i.*m.*w.*1/speed_of_sound + gamma).*y(elements.bedges(:,1));
+u = solveHelmholtzVectorizedTmp(elements, 0, 0, m*kappa, 0, zeros(size(elements.points,1),1), f, g, size(elements.points,1));
+adj = 1/4.*kappa.^2.*m.^2.*coupling(m-1,:).'.*conj(u);
+
+sum((eta_sim - eta).* adj)
+%% adjoint of the solution operator, this works only for m = 2, because after m = 2 the solution operator is not linear anymore
+m = 2;
+y = U(2,:);
+f = zeros(size(elements.points,1),1);
+h = f;
+g = f;
+
+adjPDEsol = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -conj(y), h, g, size(elements.points,1));
+adj = coupling(m-1,:)'.*conj(adjPDEsol).*1/4.*m.^2.*kappa.^2;
+
+eta = constructF(elements, centers, radii, values);
+testp = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+interior = testp.*U(m,:).';
+%error = sum(real(testp.*U(m,:)') - real((adjPDEsol.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2).*eta),1)
+
+%% formulate Landweber iteration for m=2, the linear inverse problem
+% we reconstruct in L^2(\Omega;C) so we will use the forward oprator
+% F(\eta.*kappa^2.*m^2.*coupling)=u solving the helmholtz equation for m=2
+% this gives us an adjoint operator in the Hilbert space setting and we
+% obtian by F^*(y) = a where a is the solution to the adjoint pde
+m = 2;
+f = zeros(size(elements.points,1),1);
+g = f;
+h = f;
+f_x_k = f;
+N = 2000;
+eta = zeros(size(elements.points,1), N);
+error = zeros(N,1);
+%eta(:,1) = constructF(elements, centers, radii, [1 1]);
+f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+
+stepsize = 1/mean(abs(coupling(m-1,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
+
+for i = 1:N
+    h = zeros(size(elements.points,1),1);
+    error(i) = real(f_x_k - U(m,:).')'*real(f_x_k - U(m,:).');
+    f = (f_x_k - U(m,:).');
+
+    adjointStatePDE = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, conj(f), h, g, size(elements.points,1));
+    adjointState = conj(adjointStatePDE);
+    
+    eta(:, i+1) = eta(:,i) + stepsize*(adjointState);
+    %f = 1/4.*eta(:,i+1).*m^2.*kappa^2.*coupling(m-1,:).';
+    f = eta(:,i+1);
+    f_x_k =solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+    %figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(f_x_k), 'facecolor', 'interp'); shading interp;
+    
+    while( real(f_x_k - U(m,:).')'*real(f_x_k - U(m,:).') > error(i))
+        stepsize = stepsize/2;
+        eta(:, i+1) = eta(:,i) + stepsize*(adjointState);
+        f = eta(:,i+1);
+        f_x_k =solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+    end
+   
+end
+
+%     while( real(f_x_k - U(2,:).')'*real(f_x_k - U(2,:).') > error(i))
+%         stepsize = stepsize/2;
+%         eta(:, i+1) = eta(:,i) + stepsize*real(adjointState);
+%         f = 1/4.*eta(:,i+1).*m^2.*kappa^2.*coupling(m-1,:).';
+%         f_x_k =solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+%     end
+
+my_eta = eta(:,i+1);
+for j=1:size(my_eta,1)
+    if abs(coupling(m-1,j)) > 0
+        reconEta(j) = my_eta(j)/(coupling(m-1,j)*m^2*kappa^2*1/4);
+    end
+end
+reconstructedEta = abs(reconEta);
+
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), reconstructedEta, 'facecolor', 'interp'); shading interp;
+%% inner to outer value given
+m = 2;
+y = U(m,:);
+h = zeros(size(elements.points,1),1);
+g = h;
+eta = constructF(elements, centers, radii, values);
+innerPDE = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -conj(y), h, g, size(elements.points,1));
+
+uu = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m^2.*kappa^2, h, g, size(elements.points,1));
+testh = zeros(size(elements.points,1),1);
+testh(elements.bedges(:,1)) = -conj(y(elements.bedges(:,1)));
+outerPDE = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, zeros(size(elements.points,1),1), testh, g, size(elements.points,1));
+
+sqrt(sum(abs(innerPDE - outerPDE).^2))
+
+
+y(elements.bedges(:,1))*y(elements.bedges(:,1))'
+sum(-eta.*coupling(m-1,:).'.*1/4.*m^2.*kappa^2.*(outerPDE))
+
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(outerPDE), 'facecolor', 'interp'); shading interp;
+
+%% data only given on the boundary, still the linear case of m=2 - TODO
+m = 2;
+f = zeros(size(elements.points,1),1);
+g = f;
+h = f;
+f_x_k = f;
+N = 145;
+eta = zeros(size(elements.points,1), N);
+boundaryElements = elements.bedges(:,1);
+error = zeros(N,1);
+%eta(:,1) = constructF(elements, centers, radii, [1 1]);
+f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+f_x_k = f_x_k(boundaryElements);
+y = U(m,boundaryElements).';
+stepsize = 1/mean(abs(coupling(m-1,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
+stepsize = 1;
+for i = 1:N
+    h = zeros(size(elements.points,1),1);
+    error(i) = real(f_x_k(boundaryElements) - y)'*real(f_x_k(boundaryElements) - y);
+    f = (y - f_x_k(boundaryElements));
+    h(boundaryElements) = -conj(f);
+    adjointStatePDE = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, zeros(size(elements.points,1),1), h, g, size(elements.points,1));
+    adjointState = conj(adjointStatePDE);
+    % normalize
+    adjnormalized = adjointState./(norm(adjointState,2));
+    
+    eta(:, i+1) = eta(:,i) - stepsize*(adjnormalized);
+    f = eta(:,i+1);
+    %eta(:, i+1) = eta(:,i) - stepsize*(conj(1/4 * kappa^2*m^2*coupling(m-1,:).' .* adjointStatePDE));
+    %f = 1/4 * kappa^2*m^2*coupling(m-1,:).'.*eta(:,i+1);
+    h = zeros(size(elements.points,1),1);
+
+    f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+    %figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(f_x_k), 'facecolor', 'interp'); shading interp;
+    
+    while( real(f_x_k(boundaryElements) - y)'*real(f_x_k(boundaryElements) - y) > error(i))
+        stepsize = stepsize/2;
+        eta(:, i+1) = eta(:,i) - stepsize*(adjnormalized);
+        f = eta(:,i+1);
+        f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+    end
+   
+end
+
+%     while( real(f_x_k - U(2,:).')'*real(f_x_k - U(2,:).') > error(i))
+%         stepsize = stepsize/2;
+%         eta(:, i+1) = eta(:,i) + stepsize*real(adjointState);
+%         f = 1/4.*eta(:,i+1).*m^2.*kappa^2.*coupling(m-1,:).';
+%         f_x_k =solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -f, h, g, size(elements.points,1));
+%     end
+
+my_eta = eta(:,i+1);
+for j=1:size(my_eta,1)
+    if abs(coupling(m-1,j)) > 0
+        reconEta(j) = my_eta(j)/(coupling(m-1,j)*m^2*kappa^2*1/4);
+    end
+end
+reconstructedEta = abs(reconEta);
+
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), reconstructedEta, 'facecolor', 'interp'); shading interp;
