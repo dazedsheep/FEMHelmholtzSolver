@@ -31,7 +31,9 @@ h = zeros(n,1);
 g = zeros(1,n);
 
 % consider that 1/c^2 is already included
-excitation = 10*ones(n,1); %constant excitation?
+select = zeros(n,1);
+select(200:1000) = 1;
+excitation = 10000*select; %constant excitation?
 
 p1 = solveHelmholtzVectorizedTmp(elements, omega, gamma, kappa, beta, -excitation, h, g, n);
 
@@ -44,7 +46,6 @@ p1 = solveHelmholtzVectorizedTmp(elements, omega, gamma, kappa, beta, -excitatio
 % title("Imag part of the FEM solution using linear lagrange elements.")
 % xlabel('x');
 % ylabel('y');
-
 
 % now compute the solutions for the harmonic frequencies
 
@@ -79,9 +80,9 @@ for j = 1:(nHarmonics)
      for i = 1:j
          p_i = p_i + p(i,:).*p(m-i,:);
      end
-    F(m,:) = 1/4.*-f.*m^2.*kappa^2.*p_i.';
+    F(m,:) = -1/4.*f.*m^2.*kappa^2.*p_i.';
     coupling(j,:) = p_i;
-    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, gamma, m*kappa, beta, -1/4.*f.*m^2.*kappa^2.*p_i.', h, g, n);
+    p(m,:) = solveHelmholtzVectorizedTmp(elements, m*omega, gamma, m*kappa, beta, -F(m,:), h, g, n);
 end
 
 %%

@@ -11,5 +11,6 @@ elements.points = p';
 elements.edges = e([1 2 5],:)';
 elements.T = triangulation(elements.tri(:,1 : 3),elements.points);
 %figure, pdegplot(model,'EdgeLabels','on');
+figure, pdeplot(model);
 end
 
