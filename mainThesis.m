@@ -21,8 +21,9 @@ radii = [0, 0];
 centers = [3/4, 3/4; 1/4, 3/4];
 
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
-% of sound, we set b=0, neglecting the diffusitivity of sound
-kappa = w/speed_of_sound;
+% of sound
+b = 1;
+kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
 gamma = 1;
 nHarmonics = 7;
 [boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
@@ -57,6 +58,95 @@ gamma = 1;
 
 [boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
 
+%% disc sources with fixed point scheme
+
+clearvars
+speed_of_sound = 1540; % m/s
+%speed_of_sound = 15; % m/s
+
+% signal period or center frequency
+T = 10^-4;
+w = 2*pi*1/T;
+
+% our domain
+bcenter = [1/2,1/2];
+brad = 1/2;
+domain = [bcenter, brad];
+
+
+% point scatterers and their domain
+values = [4, 2];
+radii = [0.05, 0.04];
+centers = [3/4, 3/4; 1/4, 3/4];
+
+% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
+% of sound, we set b=0, neglecting the diffusitivity of sound
+% (justification: \rho_0 is big and therefore b is very very very small)
+kappa = w/speed_of_sound;
+
+iterations = 10;
+gamma = 1;
+
+[boundaryIndices, elements, U, F, coupling] = solveForwardFixedPoint(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, iterations);
+H = U;
+U = squeeze(U(iterations,:,:));
+
+
+%% disc sources with multilevel scheme
+
+clearvars
+speed_of_sound = 1540; % m/s
+%speed_of_sound = 15; % m/s
+
+% signal period or center frequency
+T = 10^-4;
+w = 2*pi*1/T;
+
+% our domain
+bcenter = [1/2,1/2];
+brad = 1/2;
+domain = [bcenter, brad];
+
+
+% point scatterers and their domain
+values = [3, 2];
+radii = [0.05, 0.04];
+centers = [3/4, 3/4; 1/4, 3/4];
+
+% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
+% of soundb = 2;
+kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
+nHarmonics = 10;
+gamma = 1;
+
+[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevel(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
+H = U;
+U = squeeze(U(nHarmonics,:,:));
+
+%%
+% calc the solution(s) for the multi level harmonic approximation
+t_step = 1/(nHarmonics/T);
+t_step = 0.0005;
+% simulate 1000 steps
+%tind = 0:t_step:10000*t_step;
+tind = 0:t_step:1;
+n_t = size(tind,2);
+
+% construct p(t,x)
+z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
+pC = zeros(size(z,1), size(z,2));
+P = zeros(size(H,1), size(z,1), size(z,2));
+for j=1:size(H,1)
+    pC = zeros(size(z,1), size(z,2));
+    for k=1:j
+        pC = pC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*w.*tind.*T).', 1, size(U,2));
+    end
+    p_L_2(j) = sqrt(sum(sum(real(pC).^2, 2).^2,1));
+    p_L_2_t(j) = sqrt(sum(real(pC(1,:)).^2, 2));
+    P(j,:,:) = real(pC);
+end
+
+%figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
 
 %% inspect what happens to the source by the (incomplete forward)coupling
 
@@ -71,7 +161,8 @@ figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),
 % coupling
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(coupling(1,:)), 'facecolor', 'interp'); shading interp;
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(coupling(2,:)), 'facecolor', 'interp'); shading interp;
-%%
+
+%% build pressure from multiharmonic expansion
 t_step = 1/(nHarmonics/T);
 t_step = 0.0005;
 % simulate 1000 steps
@@ -296,9 +387,9 @@ N = 2000;
 eta = zeros(size(elements.points,1), N);
 error = zeros(N,1);
 %eta(:,1) = constructF(elements, centers, radii, [1 1]);
-f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
 
-stepsize = 1/mean(abs(coupling(m-1,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
+stepsize = 1/mean(abs(coupling(m,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
 
 for i = 1:N
     h = zeros(size(elements.points,1),1);
@@ -371,10 +462,10 @@ eta = zeros(size(elements.points,1), N);
 boundaryElements = elements.bedges(:,1);
 error = zeros(N,1);
 %eta(:,1) = constructF(elements, centers, radii, [1 1]);
-f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
 f_x_k = f_x_k(boundaryElements);
 y = U(m,boundaryElements).';
-stepsize = 1/mean(abs(coupling(m-1,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
+stepsize = 1/mean(abs(coupling(m,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
 stepsize = 1;
 for i = 1:N
     h = zeros(size(elements.points,1),1);
@@ -422,7 +513,7 @@ reconstructedEta = abs(reconEta);
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), reconstructedEta, 'facecolor', 'interp'); shading interp;
 
 %% data only given on the boundary, still the linear case of m=2, partial data
-percentageBoundaryData = 0.9;
+percentageBoundaryData = 0.2;
 m = 2;
 f = zeros(size(elements.points,1),1);
 g = f;
@@ -434,11 +525,10 @@ numBoundaryElements = floor(size(elements.bedges,1)*percentageBoundaryData);
 boundaryElements = elements.bedges(1:numBoundaryElements,1);
 error = zeros(N,1);
 %eta(:,1) = constructF(elements, centers, radii, [1 1]);
-f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m-1,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
+f_x_k = solveHelmholtzVectorizedTmp(elements, m*w, gamma, m*kappa, 1/speed_of_sound, -eta.*coupling(m,:).'.*1/4.*m.^2.*kappa.^2, h, g, size(elements.points,1));
 %f_x_k = f_x_k(boundaryElements);
 y = U(m,boundaryElements).';
-stepsize = 1/mean(abs(coupling(m-1,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
-stepsize = 1;
+stepsize = 1/mean(abs(coupling(m,:)));   % (initial) step size should be dependent on the damping of the medium for ultrasonic waves...
 for i = 1:N
     h = zeros(size(elements.points,1),1);
     error(i) = (f_x_k(boundaryElements) - y)'*(f_x_k(boundaryElements) - y);

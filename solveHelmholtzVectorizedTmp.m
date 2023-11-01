@@ -1,4 +1,4 @@
-function [U] = solveHelmholtzVectorizedTmp(elements, omega,gamma, kappa, beta, f, hI, g, n)
+function [U] = solveHelmholtzVectorizedTmp(elements, omega, gamma, kappa, beta, f, hI, g, n)
 
 hVec = zeros(n,1);
 FVec = zeros(n,1);
