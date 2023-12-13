@@ -47,7 +47,7 @@ M_t = area/24 .* [2; 1; 1; 1; 2; 1; 1; 1; 2];
 rowK = elements.tri(:, [1 2 3 1 2 3 1 2 3]).';
 colK = elements.tri(:, [1 1 1 2 2 2 3 3 3]).';
 
-Z_t = reshape(K, 9, size(K,3)) - kappa^2 * M_t;
+Z_t = reshape(K, 9, size(K,3))  - kappa^2 * M_t;
 % put the elements in Z_t on the right position with the local to global
 % index
 Z = sparse(rowK, colK, Z_t, size(elements.points,1),size(elements.points,1));

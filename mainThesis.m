@@ -92,9 +92,70 @@ H = U;
 U = squeeze(U(iterations,:,:));
 
 
+%% disc sources with multilevel scheme - with multiple sources near the boundary
+
+clearvars
+
+% excitation_points = [1/4,1/4;1/4,3/4];
+% excitation_power_multiplier = 100;
+% excitation_points_size = [0.03,0.03];
+
+%excitation_points = [1/4;1/4];
+%excitation_power_multiplier = 40;
+%excitation_points_size = [0.07];
+
+speed_of_sound = 1540; % m/s
+%speed_of_sound = 15; % m/s
+
+% signal period or center frequency
+T = 10^-4;
+w = 2*pi*1/T;
+
+% our domain
+bcenter = [1/2,1/2];
+brad = 1/2;
+domain = [bcenter, brad];
+
+% place the excitation points uniformly near the boundary
+num_points = 10;
+bradmult = 0.9;
+
+x = bradmult.*brad.*cos( (0:(num_points-1)) .* 2*pi / num_points) + bcenter(1);
+y = bradmult.*brad.*sin( (0:(num_points-1)) .* 2*pi / num_points) + bcenter(1);
+excitation_points = [x;y];
+excitation_power_multiplier = 15;
+excitation_points_size = ones(1,num_points).* 0.05;
+
+% point scatterers and their domain
+values = [4, 3];
+radii = [0.15, 0.15];
+centers = [3/4, 3/4; 1/2, 3/4];
+
+% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
+% of sound
+b = 10;
+kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
+nHarmonics = 50;
+gamma = 1;
+
+[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevel(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics);
+H = U;
+U = squeeze(U(nHarmonics,:,:));
+
+% difference between harmonics figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), abs(real(H(6,3,:))-real(H(14,3,:))), 'facecolor', 'interp'); shading interp;
+
 %% disc sources with multilevel scheme
 
 clearvars
+
+% excitation_points = [1/4,1/4;1/4,3/4];
+% excitation_power_multiplier = 100;
+% excitation_points_size = [0.03,0.03];
+
+excitation_points = [1/4;1/4];
+excitation_power_multiplier = -40;
+excitation_points_size = [0.07];
+
 speed_of_sound = 1540; % m/s
 %speed_of_sound = 15; % m/s
 
@@ -109,44 +170,65 @@ domain = [bcenter, brad];
 
 
 % point scatterers and their domain
-values = [3, 2];
-radii = [0.05, 0.04];
-centers = [3/4, 3/4; 1/4, 3/4];
+values = [4, 3];
+radii = [0.2, 0.15];
+centers = [1/2, 3/4; 1/2, 3/4];
 
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
-% of soundb = 2;
+% of sound
+b = 0.05;
 kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
-nHarmonics = 10;
+nHarmonics = 30;
 gamma = 1;
 
-[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevel(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
+[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevelVectorized(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics);
 H = U;
 U = squeeze(U(nHarmonics,:,:));
 
+% difference between harmonics figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), abs(real(H(6,3,:))-real(H(14,3,:))), 'facecolor', 'interp'); shading interp;
+
+
 %%
 % calc the solution(s) for the multi level harmonic approximation
-t_step = 1/(nHarmonics/T);
-t_step = 0.0005;
+t_step = 1/(4/T);
+%t_step = 0.0005;
 % simulate 1000 steps
 %tind = 0:t_step:10000*t_step;
-tind = 0:t_step:1;
+tind = 0:0.01:20;
 n_t = size(tind,2);
+
+% compute only for n iterations
+iter = 5;
 
 % construct p(t,x)
 z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
-pC = zeros(size(z,1), size(z,2));
-P = zeros(size(H,1), size(z,1), size(z,2));
-for j=1:size(H,1)
-    pC = zeros(size(z,1), size(z,2));
+P = zeros(iter, size(z,1), size(z,2));
+o = 0;
+for j=(size(H,1) - iter):size(H,1)
+    o = o + 1;
+    rpC = zeros(size(z,1), size(z,2));
     for k=1:j
-        pC = pC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*w.*tind.*T).', 1, size(U,2));
+        rpC = rpC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*w.*tind.*T).', 1, size(U,2));
     end
-    p_L_2(j) = sqrt(sum(sum(real(pC).^2, 2).^2,1));
-    p_L_2_t(j) = sqrt(sum(real(pC(1,:)).^2, 2));
-    P(j,:,:) = real(pC);
+    p_L_2(o) = sqrt(sum(sum(real(rpC).^2, 2).^2,1));
+    p_L_2_t(o) = sqrt(sum(real(rpC(1,:)).^2, 2));
+    P(o,:,:) = real(rpC);
+   
 end
 
 %figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
+%%
+L2_error = zeros(nHarmonics-1,1);
+
+for i = 1:(nHarmonics-1)
+    L2_error(i) = sum(sum(((P(i,:,:)) - P(nHarmonics,:,:)).^2));
+end
+
+figure, plot(log10(L2_error));
+xlabel('Harmonics/Iterations');
+ylabel('L2 Error to last iteration (log10)')
+
+
 
 %% inspect what happens to the source by the (incomplete forward)coupling
 
@@ -164,7 +246,7 @@ figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),
 
 %% build pressure from multiharmonic expansion
 t_step = 1/(nHarmonics/T);
-t_step = 0.0005;
+%t_step = 0.0005;
 % simulate 1000 steps
 %tind = 0:t_step:10000*t_step;
 tind = 0:t_step:1;
@@ -181,13 +263,12 @@ end
 P = real(pC);
 
 %% let's take a look at p(t,x); playback the periodic solution
-
 figure;
-for i=1:n_t
-    trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P(i,:), 'facecolor', 'interp'); shading interp;
+for i=1:1:n_t
+    trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P(iter,i,:), 'facecolor', 'interp'); shading interp;
     view([0 90]);
     drawnow
-    pause(0.01)
+    pause(1)
 end
 %% for a single point in space
 t_step = 1/(2.5*nHarmonics/T);
@@ -424,7 +505,7 @@ end
 my_eta = eta(:,i+1);
 for j=1:size(my_eta,1)
     if abs(coupling(m-1,j)) > 0
-        reconEta(j) = my_eta(j)/(coupling(m-1,j)*m^2*kappa^2*1/4);
+        reconEta(j) = abs(my_eta(j))*2;
     end
 end
 reconstructedEta = abs(reconEta);

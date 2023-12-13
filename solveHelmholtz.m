@@ -1,4 +1,4 @@
-function [U] = solveHelmholtz_test(elements, kappa, beta, f, hI, g, n)
+function [U] = solveHelmholtz(elements, kappa, beta, f, hI, g, n)
 %% assemble the finite elements
 % todo parallelize this for loop, the elements can be easily computed in
 % parallel

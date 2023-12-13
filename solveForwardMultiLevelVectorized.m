@@ -1,4 +1,4 @@
-function [boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevel(c, omega, gamma, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N)
+function [boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelVectorized(c, omega, gamma, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N)
 
 % domain triangulation
 H_max = 0.005;   
@@ -72,27 +72,23 @@ for i=1:N
 
         if i>1
             if j==2
-                for s=1:m
-                    p_m = p_m + 2*squeeze(u(i-1,s,:).*u(i-1,j-s,:)).';
-                end
+                p_m = squeeze(2*sum(u(i-1,1:m,:).*u(i-1,(j-1):-1:(j-m),:),2)).';
             else
-                for s=1:m
-                    p_m = p_m + squeeze(u(i-1,s,:).*u(i-1,j-s,:)).';
-                end
+                p_m = squeeze(sum(u(i-1,1:m,:).*u(i-1,(j-1):-1:(j-m),:),2)).';
             end
         end
 
         if i > 1
-            for s = (j+2):2:(2*i-j)
-                    p_m = p_m + squeeze(2*conj(u(i-1,(s-j)/2,:)).*u(i-1,(s+j)/2,:)).';
-            end
+            p_m = p_m + squeeze(sum(2*conj(u(i-1,(((j+2):2:(2*i-j))-j)/2,:)).*u(i-1,(((j+2):2:(2*i-j))+j)/2,:),2)).';
         end
+
         if j==1
             F(j,:) = excitation - 1/4.*f.*(m+1)^2.*kappa^2.*p_m.';
         else
             F(j,:) = - 1/4.*f.*(m+1)^2.*kappa^2.*p_m.';
         end
         coupling(j,:) = p_m;
+        
         u(i,j,:) = solveHelmholtzVectorizedTmp(elements, (m+1)*omega, gamma, (m+1)*kappa, beta, -F(j,:), h, g, n);
 
     end
