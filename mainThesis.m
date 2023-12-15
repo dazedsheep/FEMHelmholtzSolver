@@ -60,7 +60,7 @@ clearvars
 % excitation_points_size = [0.03,0.03];
 
 excitation_points = [-1/2;-1/2];
-excitation_power_multiplier = -40;
+excitation_power_multiplier = 40;
 excitation_points_size = [0.07];
 
 speed_of_sound = 1540; % m/s
