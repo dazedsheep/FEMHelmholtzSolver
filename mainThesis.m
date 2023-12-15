@@ -30,7 +30,7 @@ bradmult = 0.9;
 x = bradmult.*brad.*cos( (0:(num_points-1)) .* 2*pi / num_points) + bcenter(1);
 y = bradmult.*brad.*sin( (0:(num_points-1)) .* 2*pi / num_points) + bcenter(1);
 excitation_points = [x;y];
-excitation_power_multiplier = 15;
+excitation_power_multiplier = -30;
 excitation_points_size = ones(1,num_points).* 0.05;
 
 % point scatterers and their domain
@@ -60,7 +60,7 @@ clearvars
 % excitation_points_size = [0.03,0.03];
 
 excitation_points = [-1/2;-1/2];
-excitation_power_multiplier = 40;
+excitation_power_multiplier = -30;
 excitation_points_size = [0.07];
 
 speed_of_sound = 1540; % m/s
@@ -76,7 +76,7 @@ brad = 1;
 domain = [bcenter, brad];
 
 % point scatterers and their domain
-values = [8, 5];
+values = [9, 5];
 radii = [0.1, 0.15];
 centers = [0, 1/2; 0, -1/4];
 
@@ -112,7 +112,7 @@ iter = 1;
 z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
 P = zeros(iter, size(z,1), size(z,2));
 o = 0;
-for j=(size(H,1) - iter):size(H,1)
+for j=(min(size(H,1),cN) - iter):min(size(H,1),cN)
     o = o + 1;
     rpC = zeros(size(z,1), size(z,2));
     for k=1:j
@@ -204,6 +204,7 @@ P = real(pC);
 lsegStart = [-1/2;-1/2];
 lsegEnd = [2/4;2/4];
 
+BarToPascalFactor = 100000;
 npoints = 5000;
 
 unitVec = (lsegEnd - lsegStart)/norm((lsegEnd - lsegStart));
@@ -222,14 +223,20 @@ coords = [elements.points(idxList,1)';elements.points(idxList,2)'];
 
 t = 1;
 
-% do some interpoliation
 
 pPoint = squeeze(P(iter,t,idxList));
 
+% find the points in space which are directly affected by nonlinearity
+idxNonlinearity = find((dot(points,points) < radii(1))==1);
+
+pointdist = dot(points - excitation_points,points - excitation_points);
 % smooth the data for plotting
-figure, plot(smoothdata(pPoint, 'gaussian', 50))
+smdata = BarToPascalFactor*smoothdata(pPoint, 'gaussian', 50);
+figure, plot(pointdist, smdata)
+hold on
+plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x');
-ylabel('mPa');
+ylabel('Pa');
 
 
 %% pick a point and look at the wave
@@ -281,8 +288,6 @@ for k=1:nHarmonics
     subplot(2,1,2);
     trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(H(k,:)), 'facecolor', 'interp'); shading interp;
 end
-
-
 
 %% extract harmonics from (real) solution
 
