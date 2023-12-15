@@ -1,97 +1,4 @@
 
-%% point sources
-clearvars
-% speef of sounde
-speed_of_sound = 1540; % m/s
-
-
-% signal period or cener frequency
-T = 10^-4;
-w = 2*pi*1/T;
-
-% our domain
-bcenter = [1/2,1/2];
-brad = 1/2;
-domain = [bcenter, brad];
-
-
-% point scatterers and their domain
-values = [20000, 22000];
-radii = [0, 0];
-centers = [3/4, 3/4; 1/4, 3/4];
-
-% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
-% of sound
-b = 1;
-kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
-gamma = 1;
-nHarmonics = 7;
-[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
-
-%% disc sources
-clearvars
-speed_of_sound = 1540; % m/s
-%speed_of_sound = 15; % m/s
-
-% signal period or center frequency
-T = 10^-4;
-w = 2*pi*1/T;
-
-% our domain
-bcenter = [1/2,1/2];
-brad = 1/2;
-domain = [bcenter, brad];
-
-
-% point scatterers and their domain
-values = [300, 270];
-radii = [0.05, 0.04];
-centers = [3/4, 3/4; 1/4, 3/4];
-
-% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
-% of sound, we set b=0, neglecting the diffusitivity of sound
-% (justification: \rho_0 is big and therefore b is very very very small)
-kappa = w/speed_of_sound;
-
-nHarmonics = 7;
-gamma = 1;
-
-[boundaryIndices, elements, U, F, coupling] = solveForward(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, nHarmonics);
-
-%% disc sources with fixed point scheme
-
-clearvars
-speed_of_sound = 1540; % m/s
-%speed_of_sound = 15; % m/s
-
-% signal period or center frequency
-T = 10^-4;
-w = 2*pi*1/T;
-
-% our domain
-bcenter = [1/2,1/2];
-brad = 1/2;
-domain = [bcenter, brad];
-
-
-% point scatterers and their domain
-values = [4, 2];
-radii = [0.05, 0.04];
-centers = [3/4, 3/4; 1/4, 3/4];
-
-% actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
-% of sound, we set b=0, neglecting the diffusitivity of sound
-% (justification: \rho_0 is big and therefore b is very very very small)
-kappa = w/speed_of_sound;
-
-iterations = 10;
-gamma = 1;
-
-[boundaryIndices, elements, U, F, coupling] = solveForwardFixedPoint(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, iterations);
-H = U;
-U = squeeze(U(iterations,:,:));
-
-
 %% disc sources with multilevel scheme - with multiple sources near the boundary
 
 clearvars
@@ -137,8 +44,8 @@ b = 10;
 kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
 nHarmonics = 50;
 gamma = 1;
-
-[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevel(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics);
+beta = 1/speed_of_sound;
+[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevel(speed_of_sound, w, gamma, beta, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics);
 H = U;
 U = squeeze(U(nHarmonics,:,:));
 
@@ -152,7 +59,7 @@ clearvars
 % excitation_power_multiplier = 100;
 % excitation_points_size = [0.03,0.03];
 
-excitation_points = [1/4;1/4];
+excitation_points = [-1/2;-1/2];
 excitation_power_multiplier = -40;
 excitation_points_size = [0.07];
 
@@ -164,26 +71,27 @@ T = 10^-4;
 w = 2*pi*1/T;
 
 % our domain
-bcenter = [1/2,1/2];
-brad = 1/2;
+bcenter = [0,0];
+brad = 1;
 domain = [bcenter, brad];
 
-
 % point scatterers and their domain
-values = [4, 3];
-radii = [0.2, 0.15];
-centers = [1/2, 3/4; 1/2, 3/4];
+values = [8, 5];
+radii = [0.1, 0.15];
+centers = [0, 1/2; 0, -1/4];
 
 % actually kappa = w/(sqrt(c^2 + i*w*b), b accounts for the diffusitivity
 % of sound
 b = 0.05;
 kappa = w/sqrt(speed_of_sound^2 + 1i*w*b);
-nHarmonics = 30;
+minHarmonics = 10; % minimum number of harmonics
+nHarmonics = 18; % maximum number of harmonics
 gamma = 1;
+beta = 1/speed_of_sound;
 
-[boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevelVectorized(speed_of_sound, w, gamma, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics);
+[cN, boundaryIndices, elements, U, F, coupling] = solveForwardMultiLevelVectorized(speed_of_sound, w, gamma, beta, kappa, centers, radii, values, domain, excitation_points, excitation_points_size, excitation_power_multiplier, nHarmonics, minHarmonics, 10^(-12));
 H = U;
-U = squeeze(U(nHarmonics,:,:));
+U = squeeze(U(cN,:,:));
 
 % difference between harmonics figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), abs(real(H(6,3,:))-real(H(14,3,:))), 'facecolor', 'interp'); shading interp;
 
@@ -198,7 +106,7 @@ tind = 0:0.01:20;
 n_t = size(tind,2);
 
 % compute only for n iterations
-iter = 5;
+iter = 1;
 
 % construct p(t,x)
 z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
@@ -217,6 +125,36 @@ for j=(size(H,1) - iter):size(H,1)
 end
 
 %figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
+
+%%
+% calc the solution(s) for the multi level harmonic scheme starting at 1
+t_step = 1/(4/T);
+%t_step = 0.0005;
+% simulate 1000 steps
+%tind = 0:t_step:10000*t_step;
+tind = 0:0.01:20;
+n_t = size(tind,2);
+
+% compute only for n iterations
+maxHarmonics = 1;
+
+% construct p(t,x)
+z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
+P = zeros(maxHarmonics, size(z,1), size(z,2));
+o = 0;
+for j=1:maxHarmonics
+    o = o + 1;
+    rpC = zeros(size(z,1), size(z,2));
+    for k=1:j
+        rpC = rpC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*w.*tind.*T).', 1, size(U,2));
+    end
+    p_L_2(o) = sqrt(sum(sum(real(rpC).^2, 2).^2,1));
+    p_L_2_t(o) = sqrt(sum(real(rpC(1,:)).^2, 2));
+    P(o,:,:) = real(rpC);
+end
+
+%figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
+
 %%
 L2_error = zeros(nHarmonics-1,1);
 
@@ -261,6 +199,46 @@ for k=1:nHarmonics
 end
 
 P = real(pC);
+
+%% points along a line segment (cut through)
+lsegStart = [-1/2;-1/2];
+lsegEnd = [2/4;2/4];
+
+npoints = 5000;
+
+unitVec = (lsegEnd - lsegStart)/norm((lsegEnd - lsegStart));
+points = lsegStart + unitVec.*norm((lsegEnd - lsegStart),2)/npoints .* (1:npoints);
+
+idxList = zeros(npoints,1);
+
+for j=1:size(points,2)
+        % this is a point source
+        % find nearest node to impose our point source
+        [v,pcenterIdx] = min(sum((elements.points - points(:,j)').^2,2)); 
+        idxList(j) = pcenterIdx;    
+end
+
+coords = [elements.points(idxList,1)';elements.points(idxList,2)'];
+
+t = 1;
+
+% do some interpoliation
+
+pPoint = squeeze(P(iter,t,idxList));
+
+% smooth the data for plotting
+figure, plot(smoothdata(pPoint, 'gaussian', 50))
+xlabel('x');
+ylabel('mPa');
+
+
+%% pick a point and look at the wave
+point = [1/2;1/2];
+[v,pcenterIdx] = min(sum((elements.points - point').^2,2));
+
+coords = [elements.points(pcenterIdx,1);elements.points(pcenterIdx,2)];
+
+pPoint = P(iter,:,pcenterIdx);
 
 %% let's take a look at p(t,x); playback the periodic solution
 figure;

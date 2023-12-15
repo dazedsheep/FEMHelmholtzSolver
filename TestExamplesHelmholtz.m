@@ -55,7 +55,7 @@ realf = @(x,y,a,b, kappa) -(a^2+b^2)*(cos(a*x + b*y) + 1i*sin(a*x+b*y)) + kappa^
 
 % use the built-in meshing of MATLAB, we just have to cast the mesh into
 % our structure then
-H_max = 0.005;   
+H_max = 0.015;   
 H_min = 0.005;
 H_edges = 0.005;
 domain = [3 4 0 1 1 0 1 1 0 0];

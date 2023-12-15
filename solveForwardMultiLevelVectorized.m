@@ -1,4 +1,4 @@
-function [boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelVectorized(c, omega, gamma, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N)
+function [i, boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelVectorized(c, omega, gamma, beta, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N, minHarmonics, threshold)
 
 % domain triangulation
 H_max = 0.005;   
@@ -19,7 +19,6 @@ elements.nodeIndex = elements.tri;
 elements.triangles = populateTriangles(elements);
 
 kappa = waveNumber;
-beta = 1/c;
 n = size(elements.points,1);
 
 h = zeros(n,1);
@@ -87,12 +86,19 @@ for i=1:N
         else
             F(j,:) = - 1/4.*f.*(m+1)^2.*kappa^2.*p_m.';
         end
+
         coupling(j,:) = p_m;
         
         u(i,j,:) = solveHelmholtzVectorizedTmp(elements, (m+1)*omega, gamma, (m+1)*kappa, beta, -F(j,:), h, g, n);
 
     end
     waitbar(i/N, waitbar_handle, sprintf('%d of %d iterations done.', i, N))
+    if i > minHarmonics
+        if sum(abs(u(i-1,minHarmonics,:) - u(i,minHarmonics,:))) < threshold
+            waitbar(i/N, waitbar_handle, sprintf('Threshold reached in the %d-th harmonic.', minHarmonics))
+            break
+        end
+    end
 end
 p = u;
 boundaryIndices = elements.bedges(:,1);
