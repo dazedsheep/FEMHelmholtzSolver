@@ -10,7 +10,8 @@ elements.tri = t(1 : 3, :)';
 elements.points = p';
 elements.edges = e([1 2 5],:)';
 elements.T = triangulation(elements.tri(:,1 : 3),elements.points);
+elements.otri = t;
+elements.opoints = p;
 %figure, pdegplot(model,'EdgeLabels','on');
 %figure, pdeplot(model);
 end
-

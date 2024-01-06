@@ -1,4 +1,4 @@
-function [i, boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelVectorized(omega, gamma, beta, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N, minHarmonics, threshold, meshSize)
+function [i, boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelC(omega, gamma, beta, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, N, minHarmonics, threshold, meshSize)
 
 % domain triangulation
 H_max = meshSize;   

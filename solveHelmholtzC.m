@@ -1,4 +1,4 @@
-function [U] = solveHelmholtz(elements, kappa, gamma, beta, f, hI, g, n)
+function [U] = solveHelmholtzC(elements, omega, kappa, gamma, beta, f, hI, g, n)
 N = 2;
 [quadratureParameters.Points, quadratureParameters.W] = triangleQuadrature(N);
 
@@ -17,14 +17,14 @@ FVec = zeros(n,1);
 
 for i=1:size(elements.triangles,2)
     % prepare the prescribed h on the boundary
-    [K, M, F] = assembleFEM(elements.triangles{i}, f, quadratureParameters);
+    [K, MC, M, F] = assembleFEMC(elements.triangles{i}, kappa, f, quadratureParameters);
     
     % local index
     idx = (i-1)*basisFunctions^2 + 1;
-    localNodeIdx        = idx:(idx+basisFunctions^2-1);             
+    localNodeIdx        = idx:(idx+basisFunctions^2-1);
     
     % global index
-    globalNodeIdx       = elements.nodeIndex(i,:);  
+    globalNodeIdx       = elements.nodeIndex(i,:);
 
     % local to global index (rows and columns) needed later on for the
     % sparse matrices
@@ -34,7 +34,7 @@ for i=1:size(elements.triangles,2)
     
     FVec(globalNodeIdx) = F;
  
-    Z = K - kappa^2 * M;
+    Z = K - MC;
     Zsparse(localNodeIdx) = Z;
     Msparse(localNodeIdx) = M;
     
@@ -57,7 +57,7 @@ tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));
 Z = sparse(row,col,Zsparse, size(elements.points,1),size(elements.points,1));
 M = sparse(row,col,Msparse, size(elements.points,1),size(elements.points,1));
 
-A = Z + (1i*beta*kappa+gamma)*tBM;
+A = Z + (1i*beta*omega+gamma)*tBM;
 
 b = tBM*hVec - M*FVec;
 

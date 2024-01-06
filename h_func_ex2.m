@@ -1,6 +1,6 @@
 function [val] = h_func_ex2(x, y)
 
-kappa = 20;
+kappa = 40;
 a = kappa.*cos(pi/2);
 b = kappa.*sin(pi/2);
 beta = 1;

@@ -1,8 +1,8 @@
-function [val] = h_func_ex1(x, y)
+function [val] = h_func_ex1(x, y, k)
 
-k = 20;
-a = k*cos(pi/2);
-b = k*sin(pi/2);
+%k = 40;
+a = k;
+b = k;
 beta = 1;
 
 

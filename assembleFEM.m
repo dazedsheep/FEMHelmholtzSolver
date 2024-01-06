@@ -1,26 +1,9 @@
 function [K, M, F] = assembleFEM(element, f, quadratureParameters)
-% finite element method solver for the 2-D Helmholtz equation with
-% transparent and absorbing boundary conditions
-% transparent -> Neumann (or Robin impedance)
-% absorbing -> Dirichlet
 
-
-% figure, surf(linspace(0,1,n), linspace(0,1,n), repmat(sin(pi*linspace(0,1,n)),n,1).*repmat(sin(pi*linspace(0,1,n)), n, 1).'); shading flat;
-
-
-% the basis functions are quite trivial for a linear "polynomial"
-% 1-x-y, x, y
-% phi1 = @(x,y) 1-x-y;
-% phi2 = @(x,y) x;
-% phi3 = @(x,y) y;
-%  \nabla phi(x) = \nabla \phi^{hat} (T_K^{-1}(x)) * A_K^{-1}, where A_K is
-%  the transform matrix from the referenece element to the element triangle
 basisFuncDiff = [-1 -1; 1 0; 0 1];
 basisFunctions = 3;
 
 F = zeros(3,1);
-
-% calculate the element-wise mass and stifness matrix
 
 % the transformation matrix for the specific element
 tM = getTransformationMatrix(element.triangleVertices);
@@ -31,7 +14,7 @@ dtM= det(tM);
 
 K = zeros(basisFunctions, basisFunctions);
 F = zeros(basisFunctions,1);
-% build the stiffness element matrix -  TODO unroll loop
+% build the stiffness element matrix 
 for i=1:basisFunctions
 
     for j=1:basisFunctions  
