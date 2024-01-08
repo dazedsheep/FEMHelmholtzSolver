@@ -46,8 +46,10 @@ M_t = area/24 .* [2; 1; 1; 1; 2; 1; 1; 1; 2];
 % calculate weighted mass matrix
 % this just takes one value for kappa for each of the triangles and
 % quadrature points
-kappaPointsIdx = elements.nodeIndex(:,1);
-KappaSq = repmat(kappa(kappaPointsIdx).^2,1,9,1).';
+
+KappaSq = repmat(mean(kappa(elements.nodeIndex).^2,2),1,9,1).';
+% kappaPointsIdx = elements.nodeIndex(:,1);
+% KappaSq = repmat(kappa(kappaPointsIdx).^2,1,9,1).';
 MC = M_t .* KappaSq;
 
 % local to global indices
@@ -78,16 +80,13 @@ M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
 
 A = Z + (1i*beta*omega+gamma)*tBM;
 
-% get the right hand side
-FVec(unique(elements.nodeIndex(:,1)),1) = f(unique(elements.nodeIndex(:,1)));
-
 % get the neumann/robin boundary values
 hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
 
 % right hand side
-b = tBM*hVec - M*FVec;
+b = tBM*hVec - M*f;
 
 %% solve the system
-U = gather(A\b);
+U = A\b;
 
 end

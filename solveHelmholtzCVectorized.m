@@ -2,8 +2,8 @@ function [U] = solveHelmholtzCVectorized(elements, omega, kappa, gamma, beta, f,
 % we fix the quadrature so we can unroll the integration
 %N = 2;
 %[quadratureParameters.Points, quadratureParameters.W] = triangleQuadrature(N);
-quadratureParameters.Points = [0.2800,0.6449;0.6664,0.1551;0.0750,0.6449;0.1786,0.1551].';
-quadratureParameters.W = [0.0910;0.1590;0.0910;0.1590];
+quadratureParameters.Points = [0.280019915499074,0.644948974278318;0.666390246014701,0.155051025721682;0.075031110222608,0.644948974278318;0.178558728263616,0.155051025721682].';
+quadratureParameters.W = [0.090979309128011;0.159020690871989;0.090979309128011;0.159020690871989];
 
 hVec = zeros(n,1);
 FVec = zeros(n,1);
@@ -124,7 +124,7 @@ FVec(unique(elements.nodeIndex(:,1)),1) = f(unique(elements.nodeIndex(:,1)));
 hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
 
 % right hand side
-b = tBM*hVec - M*FVec;
+b = tBM*hVec - M*f;
 
 %% solve the system
 U = gather(A\b);

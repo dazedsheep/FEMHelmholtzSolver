@@ -189,8 +189,8 @@ ylabel('y');
 clear all
 frequ = 1;
 syms x y 
-omega = 40;
-kappa(x,y) = 40*((x)/(x+1));
+omega = 25;
+kappa(x,y) = omega*((x+0.1)/(x+0.5));
 origu(x,y) = (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
 
 realf(x,y) = -laplacian(origu,[x,y]) - kappa(x,y)^2*origu(x,y);
@@ -238,6 +238,9 @@ n = size(elements.points,1);
 % tic
 % U = solveHelmholtzC(elements, omega, kappa, gamma, beta, f, h, g, n);
 % toc
+% tic
+% U = solveHelmholtzCVectorized(elements, omega, kappa, gamma, beta, fI, hI, g, n);
+% toc
 tic
 U = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappaI, gamma, beta, fI, hI, g, n);
 toc
@@ -248,7 +251,7 @@ ylabel('y');
 
 [X,Y] = meshgrid(linspace(domainX(1),domainX(2)), linspace(domainY(1),domainY(2)));
 %O = @(x,y) (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
-O = @(x,y) (cos(40.*((x)./(x+1)).*x+40.*((x)./(x+1)).*y)+1i.*sin(40.*((x)./(x+1)).*x + 40.*((x)./(x+1)).*y));
+O = @(x,y) (cos(omega*((x+0.1)./(x+0.5)).*x+omega*((x+0.1)./(x+0.5)).*y)+1i.*sin(omega*((x+0.1)./(x+0.5)).*x + omega*((x+0.1)./(x+0.5)).*y));
 u = O(X,Y);
 figure, surf(X,Y, real(u)); shading flat; shading interp;
 title("Real part of exact sultion.")
@@ -257,5 +260,25 @@ ylabel('y');
 
 figure, surf(X,Y, imag(u)); shading flat; shading interp;
 title("Imag part of exact sultion.")
+xlabel('x');
+ylabel('y');
+
+%%
+omega = 50;
+
+domainX = [0,1];
+domainY = [0,1];
+[X,Y] = meshgrid(linspace(domainX(1),domainX(2)), linspace(domainY(1),domainY(2)));
+
+O = @(x,y) (cos(omega*((x+0.1)./(x+0.5)).*x+omega*((x+0.1)./(x+0.5)).*y)+1i.*sin(omega*((x+0.1)./(x+0.5)).*x + omega*((x+0.1)./(x+0.5)).*y));
+u = O(X,Y);
+figure, surf(X,Y, real(u)); shading flat; shading interp;
+%title("Real part of exact sultion.")
+view([-50,35]);
+xlabel('x');
+ylabel('y');
+figure, surf(X,Y, imag(u)); shading flat; shading interp;
+%title("Imag part of exact sultion.")
+view([-50,35]);
 xlabel('x');
 ylabel('y');
