@@ -6,7 +6,6 @@ quadratureParameters.Points = [0.280019915499074,0.644948974278318;0.66639024601
 quadratureParameters.W = [0.090979309128011;0.159020690871989;0.090979309128011;0.159020690871989];
 
 hVec = zeros(n,1);
-FVec = zeros(n,1);
 
 phi1 = @(x,y) 1-x-y;
 phi2 = @(x,y) x;
@@ -116,9 +115,6 @@ tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));
 M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
 
 A = Z + (1i*beta*omega+gamma)*tBM;
-
-% get the right hand side
-FVec(unique(elements.nodeIndex(:,1)),1) = f(unique(elements.nodeIndex(:,1)));
 
 % get the neumann/robin boundary values
 hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));

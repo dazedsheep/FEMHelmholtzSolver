@@ -96,7 +96,7 @@ for i=1:N
 
         coupling(j,:) = p_m;
         
-        u(i,j,:) = solveHelmholtzCVectorizedKappaSampled(elements, (m+1)*omega, (m+1).*kappa, gamma,  beta, -F(j,:), h, g, n);
+        u(i,j,:) = solveHelmholtzCVectorizedKappaSampled(elements, (m+1)*omega, (m+1).*kappa, gamma,  beta, -F(j,:).', h, g, n);
     end
     waitbar(i/N, waitbar_handle, sprintf('%d of %d iterations done.', i, N))
     if i > minHarmonics

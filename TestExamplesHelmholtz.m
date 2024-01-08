@@ -189,7 +189,7 @@ ylabel('y');
 clear all
 frequ = 1;
 syms x y 
-omega = 25;
+omega = 50;
 kappa(x,y) = omega*((x+0.1)/(x+0.5));
 origu(x,y) = (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
 
@@ -248,6 +248,7 @@ figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),
 title("Real part of the FEM solution using linear lagrange elements.")
 xlabel('x');
 ylabel('y');
+view([-50,35]);
 
 [X,Y] = meshgrid(linspace(domainX(1),domainX(2)), linspace(domainY(1),domainY(2)));
 %O = @(x,y) (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
