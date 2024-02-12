@@ -1,4 +1,4 @@
-function [i, boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelC(omega, gamma, beta, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, refractionIndex, speed_of_sound, diffusitivity, N, minHarmonics, threshold, meshSize)
+function [i, boundaryIndices, elements, p, F, coupling] = solveForwardMultiLevelC(omega, gamma, beta, waveNumber, center, radii, sourceValues, domain, excitationPoints, excitationPointsSize, excitationPower, refractionIndex, speed_of_sound, diffusitivity, N, minHarmonics, threshold, massDensity, meshSize)
 
 % domain triangulation
 H_max = meshSize;   
@@ -45,12 +45,12 @@ for j=1:size(center,2)
         % this is a point source
         % find nearest node to impose our point source
         [v,pcenterIdx] = min(sum((elements.points - center(:,j)').^2,2)); 
-        f(pcenterIdx) = sourceValues(j);
+        f(pcenterIdx) = sourceValues(j)/(massDensity*speed_of_sound^2);
     else
         % this is a "disc" source
         for i=1:n
             if norm(elements.points(i,:) - center(:,j)',2) < radii(j) 
-                f(i) = sourceValues(j);
+                f(i) = sourceValues(j)/(massDensity*speed_of_sound^2);
                 if sourceValues(j) > 0
                     kappa(i) = omega/sqrt((speed_of_sound/refractionIndex(j))^2 + 1i*omega*diffusitivity);
                 end

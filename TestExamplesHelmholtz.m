@@ -190,7 +190,9 @@ clear all
 frequ = 1;
 syms x y 
 omega = 50;
-kappa(x,y) = omega*((x+0.1)/(x+0.5));
+c = 1;
+b = 0.001;
+kappa(x,y) = sqrt(omega^2/(((x+0.5)/(x+0.1))^2 + 1i*omega*b));
 origu(x,y) = (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
 
 realf(x,y) = -laplacian(origu,[x,y]) - kappa(x,y)^2*origu(x,y);
@@ -242,6 +244,7 @@ n = size(elements.points,1);
 % U = solveHelmholtzCVectorized(elements, omega, kappa, gamma, beta, fI, hI, g, n);
 % toc
 tic
+
 U = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappaI, gamma, beta, fI, hI, g, n);
 toc
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),real(U), 'facecolor', 'interp'); shading interp;
@@ -252,7 +255,10 @@ view([-50,35]);
 
 [X,Y] = meshgrid(linspace(domainX(1),domainX(2)), linspace(domainY(1),domainY(2)));
 %O = @(x,y) (cos(kappa(x,y).*x+kappa(x,y).*y)+1i.*sin(kappa(x,y).*x + kappa(x,y).*y));
-O = @(x,y) (cos(omega*((x+0.1)./(x+0.5)).*x+omega*((x+0.1)./(x+0.5)).*y)+1i.*sin(omega*((x+0.1)./(x+0.5)).*x + omega*((x+0.1)./(x+0.5)).*y));
+%O = @(x,y) (cos(omega*((x+0.1)./(x+0.5)).*x+omega*((x+0.1)./(x+0.5)).*y)+1i.*sin(omega*((x+0.1)./(x+0.5)).*x + omega*((x+0.1)./(x+0.5)).*y));
+O = @(x,y) (cos( sqrt(omega.^2./(((x+0.5)./(x+0.1)).^2 + 1i.*omega.*b)).*x+sqrt(omega.^2./(((x+0.5)./(x+0.1)).^2 + 1i.*omega.*b)).*y)+1i.*sin(sqrt(omega.^2./(((x+0.5)./(x+0.1)).^2 + 1i.*omega.*b)).*x + sqrt(omega.^2./(((x+0.5)./(x+0.1)).^2 + 1i.*omega.*b)).*y));
+
+
 u = O(X,Y);
 figure, surf(X,Y, real(u)); shading flat; shading interp;
 title("Real part of exact sultion.")
