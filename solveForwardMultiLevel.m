@@ -84,7 +84,7 @@ for i=1:N
 
         if i > 1
             for s = (j+2):2:(2*i-j)
-                    p_m = p_m + squeeze(2*conj(u(i-1,(s-j)/2,:)).*u(i-1,(s+j)/2,:)).';
+                p_m = p_m + squeeze(2*conj(u(i-1,(s-j)/2,:)).*u(i-1,(s+j)/2,:)).';
             end
         end
         if j==1

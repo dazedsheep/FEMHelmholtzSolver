@@ -1,4 +1,4 @@
-function [gridPoints] = getGridPoints(points, radii, elements)
+function [gridPoints] = getGridPoints(elements, points, radii)
 n = size(elements.points,1);
 gridPoints = zeros(n,1);
 % construct our f

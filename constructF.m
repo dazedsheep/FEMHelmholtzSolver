@@ -1,21 +1,22 @@
-function [f] = constructF(elements,center, radii, sourceValues)
-n = size(elements.points,1);
-f = zeros(n,1);
+function [f] = constructF(elements, massDensity, speed_of_sound, refractionIndex, sources, sourcesRadii, sourceValues)
+
+f  = zeros(size(elements.points,1),1);
 % construct our f
-for j=1:size(center,2)
-    if(radii(j) == 0)
+for j=1:size(sources,2)
+    if(sourcesRadii(j) == 0)
         % this is a point source
         % find nearest node to impose our point source
-        [v,pcenterIdx] = min(sum((elements.points - center(:,j)').^2,2)); 
-        f(pcenterIdx) = sourceValues(j);
+        [v,pcenterIdx] = min(sum((elements.points - sources(:,j)').^2,2)); 
+        f(pcenterIdx) = sourceValues(j)/(massDensity*(speed_of_sound/refractionIndex(pcenterIdx))^2);
     else
         % this is a "disc" source
-        for i=1:n
-            if norm(elements.points(i,:) - center(:,j)',2) < radii(j) 
-                f(i) = sourceValues(j);
+        for i=1:size(elements.points,1)
+            if norm(elements.points(i,:) - sources(:,j)',2) < sourcesRadii(j) 
+                f(i) = sourceValues(j)/(massDensity*(speed_of_sound/refractionIndex(j))^2);
             end
         end
     end
 end
-end
 
+
+end
