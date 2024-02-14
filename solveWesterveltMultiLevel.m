@@ -83,19 +83,16 @@ for i=1:N
         m = j - 1;
         p_m = zeros(1,n);
 
-        % first iteration has just the excitation on the right hand side
+        % the first iteration has just the excitation on the right hand side
         if i>1
             p_m = squeeze(sum(u(i-1,1:m,:).*u(i-1,(j-1):-1:(j-m),:),2)).';
             p_m = p_m + squeeze(sum(2*conj(u(i-1,(((j+2):2:(2*i-j))-j)/2,:)).*u(i-1,(((j+2):2:(2*i-j))+j)/2,:),2)).';
         end
 
-        if j==1
-            F(j,:) = excitation - 1/4.*f.*(m+1)^2.*kappa(:,j).^2.*p_m.';
-        else
-            F(j,:) = - 1/4.*f.*(m+1)^2.*kappa(:,j).^2.*p_m.';
-        end
-
+        F(j,:) = excitation(:,j) - 1/4.*f.*(m+1)^2.*kappa(:,j).^2.*p_m.';
+      
         u(i,j,:) = solveHelmholtzCondensedC(elements, (m+1)*omega, gamma, (m+1)*kappa(:,j), beta, -F(j,:).', h, n, K, rowK, colK, M_t, tBM);
+
         if i==2 && j==2
             elapsedTime = toc;
         end

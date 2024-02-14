@@ -5,10 +5,7 @@ clearvars
 massDensity = 1000; %kg/m^3
 speed_of_sound = 1540; % m/s
 
-excitationPoints = [-0.5;-0.5];
-% typical ultrasound pressure is 1MPa
-excitationPower = -1*10^6;
-excitationPointsSize = [0.07];
+
 
 % signal period or center frequency
 T = 10^-4;
@@ -33,14 +30,21 @@ minHarmonics = 6; % minimum number of harmonics
 nHarmonics = 6; % maximum number of harmonics
 gamma = 1;
 beta = 1/speed_of_sound;
+
 meshSize = 0.005;
+
+excitationPoints = [-0.5;-0.5];
+% typical ultrasound pressure is 1MPa
+excitationPower(1,1) = -1*10^6;
+excitationPower(1,2:nHarmonics) = 0;
+excitationPointsSize = [0.07];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
-excitation = getGridPoints(elements, excitationPoints, excitationPointsSize);
-excitation = excitationPower .* excitation;
+excitation = getGridPoints(elements, excitationPoints, excitationPointsSize, 1, nHarmonics);
+excitation = repmat(excitationPower, size(elements.points,1), 1) .* excitation;
 
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, 10^(-12));
 H = U;
