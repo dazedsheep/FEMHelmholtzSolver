@@ -37,13 +37,14 @@ excitationPoints = [-0.5;-0.5];
 % typical ultrasound pressure is 1MPa
 excitationPower(1,1) = -1*10^6;
 excitationPower(1,2:nHarmonics) = 0;
+nExcitationHarmonics = 1;
 excitationPointsSize = [0.07];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
-excitation = getGridPoints(elements, excitationPoints, excitationPointsSize, 1, nHarmonics);
+excitation = getGridPoints(elements, excitationPoints, excitationPointsSize, nExcitationHarmonics, nHarmonics);
 excitation = repmat(excitationPower, size(elements.points,1), 1) .* excitation;
 
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, 10^(-12));
