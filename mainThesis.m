@@ -5,8 +5,6 @@ clearvars
 massDensity = 1000; %kg/m^3
 speed_of_sound = 1540; % m/s
 
-
-
 % signal period or center frequency
 T = 10^-4;
 omega = 2*pi*1/T;
@@ -18,33 +16,37 @@ domain = [bcenter, brad];
 
 % point scatterers and their domain
 values = [3.5, 0];
-refractionIndex = [1.1, 1];
+refractionIndex = [1, 1];
 % linear case
 %values = [0, 0];
-radii = [0.2, 0.1];
-centers = [0, 1/2; 0, -1/4];
+radii = [0.1, 0.1];
+centers = [-0.3, 1/2; -0.3, -1/4];
 
-diffusivity = 0.05;
+diffusivity = 10^(-9);
 
-minHarmonics = 6; % minimum number of harmonics
-nHarmonics = 6; % maximum number of harmonics
+minHarmonics = 3; % minimum number of harmonics
+nHarmonics = 3; % maximum number of harmonics
 gamma = 1;
-beta = 1/speed_of_sound;
+% impdeance boundary conditions --> massDensity cancels
+% higher frequencies are taken into account later
+beta = 1/(speed_of_sound);
 
 meshSize = 0.005;
 
-excitationPoints = [-0.5;-0.5];
+excitationPoints = [-0;-0];
 % typical ultrasound pressure is 1MPa
-excitationPower(1,1) = -1*10^6;
+excitationPower(1,1) = 1*10^6;
 excitationPower(1,2:nHarmonics) = 0;
 nExcitationHarmonics = 1;
-excitationPointsSize = [0.07];
+excitationPointsSize = [0.05];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
+% construct nonlinearity
 f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 excitation = getGridPoints(elements, excitationPoints, excitationPointsSize, nExcitationHarmonics, nHarmonics);
+excitationPower(1,:) = -1i*massDensity*omega^2./(speed_of_sound.^2 + 1i .* (1:nHarmonics) .* omega .* diffusivity).*excitationPower(1,:);
 excitation = repmat(excitationPower, size(elements.points,1), 1) .* excitation;
 
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, 10^(-12));
@@ -121,6 +123,11 @@ hold on
 plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x');
 ylabel('Pa');
+
+%% solution with Green's function for the linear case
+H = 1i/4 .* besselh(0,omega.*pointdist./speed_of_sound);
+figure,plot(real(H))
+figure,plot(pointdist,real(H))
 %%
 % calc the solution(s) for the multi level harmonic scheme starting at 1
 t_step = 1/(4/T);

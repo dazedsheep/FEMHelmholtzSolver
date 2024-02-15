@@ -9,7 +9,7 @@ for j=1:size(sources,2)
         % this is a point source
         % find nearest node to impose our point source
         [v,pcenterIdx] = min(sum((elements.points - sources(:,j)').^2,2)); 
-        kappa(pcenterIdx,:) = sourceValues(j)/(massDensity*(speed_of_sound./refractionIndex(pcenterIdx))^2+ 1i.*(1:nHarmonics).*omega*diffusivity);
+        kappa(pcenterIdx,:) = omega./sqrt((speed_of_sound./refractionIndex(pcenterIdx))^2+ 1i.*(1:nHarmonics).*omega*diffusivity);
     else
         % this is a "disc" source
         for i=1:size(elements.points,1)
