@@ -102,11 +102,11 @@ e_Vec = elements.points(elements.bedges(:,1),:) - elements.points(elements.bedge
 e_len = sqrt(sum(e_Vec.^2,2));
 
 % boundary element mass matrix
-t_bM = e_len'/6 .* [1;2;2;1]; 
+t_bM = e_len'/6 .* [2;1;1;2]; 
 
 % local to global index for the boundary
-brow = elements.bedges(:,[1,2,1,2]);
-bcol = elements.bedges(:,[1,1,2,2]);
+brow = elements.bedges(:,[1,2,1,2]).';
+bcol = elements.bedges(:,[1,1,2,2]).';
 
 % sparse boundary mass matrix
 tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));

@@ -13,13 +13,13 @@ Z = sparse(rowK, colK, Z_t, size(elements.points,1),size(elements.points,1));
 % sparse mass matrix
 M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
 
-A = Z + (1i*beta*omega+gamma)*tBM;
+A = Z + (1i.*beta.*omega + gamma).*tBM;
 
 % get the neumann/robin boundary values
-hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
-
+%hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
+%f(elements.bedges(:,1)) = 0;
 % right hand side
-b = tBM*hVec - M*f;
+b = tBM*hVec + M*f;
 
 %% solve the system
 U = A\b;

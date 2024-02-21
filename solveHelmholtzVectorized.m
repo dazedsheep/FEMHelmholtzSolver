@@ -55,7 +55,7 @@ Z = sparse(rowK, colK, Z_t, size(elements.points,1),size(elements.points,1));
 %% process the transparent (Neumann or Robin) boundary conditions
 e_Vec = elements.points(elements.bedges(:,1),:) - elements.points(elements.bedges(:,2),:);
 e_len = sqrt(sum(e_Vec.^2,2));
-t_bM = e_len'/6 .* [1;2;2;1]; % boundary element mass matrix
+t_bM = e_len'/6 .* [2;1;1;2]; % boundary element mass matrix
 brow = elements.bedges(:,[1,2,1,2]);
 bcol = elements.bedges(:,[1,1,2,2]);
 tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));
@@ -64,13 +64,13 @@ M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
 A = Z + 1i*beta*kappa*tBM;
 
 % get the right hand side
-FVec(unique(elements.nodeIndex(:,1)),1) = f(unique(elements.nodeIndex(:,1)));
+%FVec(unique(elements.nodeIndex(:,1)),1) = f(unique(elements.nodeIndex(:,1)));
 
 % get the neumann/robin boundary values
-hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
+%hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
 
 % right hand side
-b = tBM*hVec - M*FVec;
+b = tBM*hI + M*f;
 
 %% solve the system
 U = A\b;

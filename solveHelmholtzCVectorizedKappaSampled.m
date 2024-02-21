@@ -1,6 +1,7 @@
-function [U] = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappa, gamma, beta, f, hI, g, n)
+function [U] = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappa, gamma, beta, f, hI, g, n)% we fix the quadrature so we can unroll the integration
 
 hVec = zeros(n,1);
+
 
 % initialize the needed data
 % extract nodes numbers of the 3 vertices of each triangle 
@@ -14,6 +15,7 @@ m = size(elements.tri,1);
 n1 = [n1x;n1y];
 n2 = [n2x;n2y];
 n3 = [n3x;n3y];
+
 
 % compute the element wise transformation matrices
 A = [n2(1,:) - n1(1,:), n3(1,:) - n1(1,:); n2(2,:) - n1(2,:), n3(2,:) - n1(2,:)];
@@ -43,19 +45,19 @@ K = pagemtimes(pagemtimes(K1,pagetranspose(K1)), reshape(area.*1/2, 1, 1, size(a
 M_t = area/24 .* [2; 1; 1; 1; 2; 1; 1; 1; 2];
 
 % calculate weighted mass matrix
-% this just takes one value for kappa for each of the triangles and
-% quadrature points
-
-KappaSq = repmat(mean(kappa(elements.nodeIndex).^2,2),1,9,1).';
-% kappaPointsIdx = elements.nodeIndex(:,1);
-% KappaSq = repmat(kappa(kappaPointsIdx).^2,1,9,1).';
+% 
+% we need to transform the quadrature points for all the elements
+%kappaPointsIdx = elements.nodeIndex(:,1);
+KappaSq = repmat(mean(kappa(elements.nodeIndex),2).^2,1,9,1).';
 MC = M_t .* KappaSq;
 
 % local to global indices
 rowK = elements.tri(:, [1 2 3 1 2 3 1 2 3]).';
 colK = elements.tri(:, [1 1 1 2 2 2 3 3 3]).';
 
-Z_t = reshape(K, 9, size(K,3))  - MC;
+% Z_t = reshape(K, 9, size(K,3))  - reshape(MC,9,size(MC,3));
+Z_t = reshape(K, 9, size(K,3)) - MC;
+
 % put the elements in Z_t on the right position with the local to global
 % index
 Z = sparse(rowK, colK, Z_t, size(elements.points,1),size(elements.points,1));
@@ -65,11 +67,11 @@ e_Vec = elements.points(elements.bedges(:,1),:) - elements.points(elements.bedge
 e_len = sqrt(sum(e_Vec.^2,2));
 
 % boundary element mass matrix
-t_bM = e_len'/6 .* [1;2;2;1]; 
+t_bM = e_len'/6 .* [2;1;1;2]; 
 
 % local to global index for the boundary
-brow = elements.bedges(:,[1,2,1,2]);
-bcol = elements.bedges(:,[1,1,2,2]);
+brow = elements.bedges(:,[1,2,1,2]).';
+bcol = elements.bedges(:,[1,1,2,2]).';
 
 % sparse boundary mass matrix
 tBM = sparse(brow,bcol, t_bM, size(elements.points,1),size(elements.points,1));
@@ -80,12 +82,12 @@ M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
 A = Z + (1i*beta*omega+gamma)*tBM;
 
 % get the neumann/robin boundary values
-hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
+%hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
 
 % right hand side
-b = tBM*hVec - M*f;
+b = tBM*hI + M*f;
 
 %% solve the system
-U = A\b;
+U = gather(A\b);
 
 end

@@ -13,42 +13,58 @@ omega = 2*pi*1/T;
 bcenter = [0,0];
 brad = 1;
 domain = [bcenter, brad];
-
+ 
 % point scatterers and their domain
-values = [3.5, 0];
+values = [2];
 refractionIndex = [1, 1];
 % linear case
 %values = [0, 0];
-radii = [0.1, 0.1];
-centers = [-0.3, 1/2; -0.3, -1/4];
+radii = [0.1];
+centers = [0.0; -0.1];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 3; % minimum number of harmonics
-nHarmonics = 3; % maximum number of harmonics
-gamma = 1;
+minHarmonics = 2; % minimum number of harmonics
+nHarmonics = 2; % maximum number of harmonics
+
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
 beta = 1/(speed_of_sound);
+gamma = 1;
 
 meshSize = 0.005;
 
-excitationPoints = [-0;-0];
-% typical ultrasound pressure is 1MPa
-excitationPower(1,1) = 1*10^6;
+excitationPoints = [0;0.2];
+% typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
+% frequency -> lower pressure!
+referencePressure = 5*10^4;
+excitationPointsSize = [1];
+excitationPower(1,1) = referencePressure;
 excitationPower(1,2:nHarmonics) = 0;
 nExcitationHarmonics = 1;
-excitationPointsSize = [0.05];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
+
+% plot the positions of excitation(s) and source(s)
+%  objects = getGridPointsLE(elements, [centers excitationPoints], [radii excitationPointsSize]);
+%  figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), objects, 'facecolor', 'interp'); shading interp;
+% xlabel("x [m]");
+% ylabel("y [m]");
+
 % construct nonlinearity
-f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
+f = massDensity.*constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
-excitation = getGridPoints(elements, excitationPoints, excitationPointsSize, nExcitationHarmonics, nHarmonics);
-excitationPower(1,:) = -1i*massDensity*omega^2./(speed_of_sound.^2 + 1i .* (1:nHarmonics) .* omega .* diffusivity).*excitationPower(1,:);
-excitation = repmat(excitationPower, size(elements.points,1), 1) .* excitation;
 
+% build a gaussian source
+% source = -massDensity.*referencePressure.*gaussianSource(elements, excitationPoints, 0.6);
+% build a point source (regularized dirac)
+source = -massDensity.*speed_of_sound^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
+
+excitation = excitation;
+%excitation = 1i./(speed_of_sound.^2 + 1i .* (1:nHarmonics) .* omega .* diffusivity).*excitation;
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
@@ -90,7 +106,7 @@ end
 % lsegEnd = [2/4;2/4];
 
 lsegStart = excitationPoints;
-lsegEnd = [0.5;0.5];
+lsegEnd = [0;-1];
 
 npoints = 2000; 
 
@@ -100,8 +116,6 @@ points = lsegStart + unitVec.*norm((lsegEnd - lsegStart),2)/npoints .* (0:(npoin
 idxList = zeros(npoints,1);
 
 for j=1:size(points,2)
-        % this is a point source
-        % find nearest node to impose our point source
         [v,pcenterIdx] = min(sum((elements.points - points(:,j)').^2,2)); 
         idxList(j) = pcenterIdx;    
 end
@@ -123,6 +137,41 @@ hold on
 plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x');
 ylabel('Pa');
+
+%% pick a point and look at the frequency domain
+% therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
+point = [0;-0.4];
+
+[v,idx] = min(sum((elements.points - point(:)').^2,2)); 
+
+node = [elements.points(idx,1);elements.points(idx,2)];
+
+% sampling frequency in time
+Fs = 1/T * 2 * (nHarmonics+1);
+
+N = 500;
+pC = zeros(1,N);
+for m=1:nHarmonics
+    pC = pC + U(m,idx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
+end
+
+time = (0:(N-1))*1/Fs;
+timescale = 10^3;
+figure, plot(time*timescale,real(pC))
+ylabel("Acoustinc Pressure [Pa]");
+xlabel("Time [ms]");
+
+window = hanning(N);
+freq =  Fs/N*(0:(N/2));
+y = abs(fft(window'.*real(pC)))/N;
+y1 = y(1:N/2+1);
+y1(2:end-1) = 2*y1(2:end-1);
+shiftedTF = fftshift(fft(real(pC)))/N;
+TFdB = 10*log10(y1/referencePressure);
+fscaling = 10^3;
+figure, plot(freq./fscaling, TFdB(1:N/2+1))
+xlabel("Frequency [kHz]")
+ylabel("P/P0 [dB]")
 
 %% solution with Green's function for the linear case
 H = 1i/4 .* besselh(0,omega.*pointdist./speed_of_sound);
