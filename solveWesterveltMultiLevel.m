@@ -1,4 +1,4 @@
-function [i, u, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, threshold)
+function [i, u, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, scaleBoundaryCondition, threshold)
 
 n = size(elements.points,1);
 N = nHarmonics;
@@ -84,9 +84,11 @@ for i=1:N
         end
 
         F(j,:) = excitation(:,j) - 1/2.*f.*j^2.*kappa(:,j).^2.*p_m.';
-      
-        u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta*1/j, F(j,:).', h, n, K, rowK, colK, M_t, tBM);
-
+        if scaleBoundaryCondition == true
+            u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta*1/j, F(j,:).', h, n, K, rowK, colK, M_t, tBM);
+        else
+            u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta, F(j,:).', h, n, K, rowK, colK, M_t, tBM);
+        end
         if i==2 && j==2
             elapsedTime = toc;
         end
