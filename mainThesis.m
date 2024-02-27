@@ -3,7 +3,7 @@
 clearvars
 
 massDensity = 1000; %kg/m^3
-speed_of_sound = 1540; % m/s
+speed_of_sound = 1480; % m/s
 
 % signal period or center frequency
 T = 10^-4;
@@ -15,12 +15,12 @@ brad = 1;
 domain = [bcenter, brad];
  
 % point scatterers and their domain
-values = [3, 2.5];
+values = [20, 0];
 refractionIndex = [1, 1];
 % linear case
 %values = [0, 0];
-radii = [0.1, 0.1];
-centers = [0.4, 0.1; -0.2, -0.1];
+radii = [0.1];
+centers = [0; 0.5];
 
 diffusivity = 10^(-9);
 
@@ -34,10 +34,10 @@ gamma = 1;
 
 meshSize = 0.005;
 
-excitationPoints = [0;0.9];
+excitationPoints = [0;0.8];
 % typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
 % frequency -> lower pressure!
-referencePressure = 5*10^4;
+referencePressure = 10*10^6;
 excitationPointsSize = [0.01];
 excitationPower(1,1) = referencePressure;
 excitationPower(1,2:nHarmonics) = 0;
@@ -52,14 +52,16 @@ xlabel("x [m]");
 ylabel("y [m]");
 
 % construct nonlinearity
-f = massDensity.*constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
+f = -constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values);
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
 % build a gaussian source
-% source = -massDensity.*referencePressure.*gaussianSource(elements, excitationPoints, 0.6);
+%source = -speed_of_sound^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*gaussianSource(elements, excitationPoints, 0.6);
 % build a point source (regularized dirac)
-source = -massDensity.*speed_of_sound^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*createPointSource(elements, excitationPoints, meshSize);  
+
+% we need to scale the reference pressure to the "point" source
+source = speed_of_sound^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*createPointSource(elements, excitationPoints, meshSize).*2/(meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
@@ -105,9 +107,9 @@ end
 % lsegEnd = [2/4;2/4];
 
 lsegStart = excitationPoints;
-lsegEnd = [0;-1];
+lsegEnd = [0;-0.3];
 
-npoints = 2000; 
+npoints = 4000; 
 
 unitVec = (lsegEnd - lsegStart)/norm((lsegEnd - lsegStart));
 points = lsegStart + unitVec.*norm((lsegEnd - lsegStart),2)/npoints .* (0:(npoints-1));
@@ -137,9 +139,17 @@ plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x');
 ylabel('Pa');
 
+
+%%
+figure, plot(pointdist, smdata)
+hold on
+figure, plot(pointdist, 10*log10(abs(smdata)/referencePressure))
+xlabel('x');
+ylabel('Pa');
+
 %% pick a point and look at the frequency domain
 % therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
-point = [0.1;-0.4];
+point = [0;0.6];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 
