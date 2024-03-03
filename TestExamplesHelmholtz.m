@@ -289,3 +289,81 @@ figure, surf(X,Y, imag(u)); shading flat; shading interp;
 view([-50,35]);
 xlabel('x');
 ylabel('y');
+%% circular test
+clear all
+b = 0.001;
+
+
+% --> Quadrangle format 1 x 10: [3 4 x_UpLeft x_UpR x_LoR x_LoLeft y_UpLeft y_UpR y_LoR y_LoLeft]
+% --> Circle format 1 x 4: [1 x_c y_c radius]
+
+% use the built-in meshing of MATLAB, we just have to cast the mesh into
+% our structure then
+H_max = 0.05;   
+H_min = 0.05;
+H_edges = 0.05;
+bcenter = [0,0];
+brad = 2.5;
+domain = [bcenter, brad];
+bcenter = [domain(1),domain(2)];
+brad = domain(3);
+domain = [1, bcenter, brad];
+elements = createMesh(domain, H_max, H_min, H_edges);
+
+excitationPoints = [0;1];
+% typical ultrasound pressure is 1MPa
+excitationPower = 1;
+nExcitationHarmonics = 1;
+
+%source = excitationPower.*gaussianSource(elements, excitationPoints, 0.1);
+
+%figure, triplot(elements.T);
+
+% use pdegplot to figure out the edge labels!!
+elements.nr_edges = 1:4; 
+elements.bedges = elements.edges(find(ismember(elements.edges(:,3),elements.nr_edges)),:);  % in our case these are all edges
+elements.nodeIndex = elements.tri;
+
+% populate triangles, this is still needed... (not nice)
+elements.triangles = populateTriangles(elements);
+
+n = size(elements.points,1);
+
+% point source using the regularized dirac function (=> it is in L2 :))
+source = createPointSource(elements, excitationPoints,H_max/2);  
+f = 500;
+omega = 2*pi*f;
+rho_0 = 1.225;
+c = 343;
+
+%fI = 1i.*source;
+fI = 2*rho_0.*source;
+hI = zeros(n,1);
+fI(elements.bedges(:,1)) = 0;
+
+kappa = omega/c;
+
+kappaI = ones(n,1).*kappa;
+
+g = zeros(n,1);
+
+% take care, the solver uses 1i*beta*omega as ABC
+beta = 1/(c^2);
+gamma = 0;
+
+% tic
+% U = solveHelmholtzC(elements, omega, kappa, gamma, beta, f, h, g, n);
+% toc
+% tic
+% U = solveHelmholtzCVectorized(elements, omega, kappa, gamma, beta, fI, hI, g, n);
+% toc
+tic
+
+U = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappaI, gamma, beta, fI, hI, g, n);
+toc
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),real(U), 'facecolor', 'interp'); shading interp;
+title("Real part of the FEM solution using linear lagrange elements.")
+xlabel('x');
+ylabel('y');
+view([-50,35]);
+%% rectangular test

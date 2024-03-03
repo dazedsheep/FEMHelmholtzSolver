@@ -1,29 +1,27 @@
+%% Solver for the periodic Westervelt equation
 clearvars
 
 massDensity = 1000; %kg/m^3
 speed_of_sound = 1480; % m/s
 
 % signal period or center frequency
-T = 10^-4;
-omega = 2*pi*1/T; % angular velocity
-
-% wavelength
-lambda = speed_of_sound/(1/T);
+T = 10^-5;
+omega = 2*pi*1/T;
 
 % our domain
 bcenter = [0,0];
-brad = 1;
+brad = 0.2;
 domain = [bcenter, brad];
 % non linearity parameter of our domain (water = 5)
-sourceValueDomain = 8;
+sourceValueDomain = 5;
 
 % point scatterers and their domain
 values = [0, 0];
 refractionIndex = [1, 1];
 % linear case
 %values = [0, 0];
-radii = [0.1, 0.1];
-centers = [0, 0; -0.3, 0.2];
+radii = [0.01, 0.01];
+centers = [0, 0; 0.5, 0.2];
 
 diffusivity = 10^(-9);
 
@@ -32,20 +30,20 @@ nHarmonics = 4; % maximum number of harmonics
 
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
-beta = 1/(speed_of_sound);
+
 gamma = 10^(-9);
 
-meshSize = 0.005;
+beta = 1/speed_of_sound;
 
-% build a linear array
-excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;0.8,0.8,0.8,0.8,0.8];
-angles = exp(1i.*omega.*[-pi,-pi,0,0,pi,pi]);
-% typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
-% frequency -> lower pressure!
-pressure = 100*10^4;
-excitationPointsSize = [0.01,0.01,0.01,0.01,0.01];
-excitationPower(1,1) = pressure;
+meshSize = 0.0005;
+
+excitationPoints = [0;0.15];
+% typical ultrasound pressure is 1MPa
+referencePressure = 10*10^6;
+excitationPower(1,1) = 1*10^6;
 excitationPower(1,2:nHarmonics) = 0;
+nExcitationHarmonics = 1;
+excitationPointsSize = [0.001];
 
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -67,9 +65,10 @@ kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionI
 
 % we need to scale the reference pressure to the "point" source/linear
 % array
-source = pressure.*createPointSourceWithAngles(elements, excitationPoints, meshSize, angles);  
+source = omega^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*createPointSource(elements, excitationPoints, meshSize).*referencePressure;  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+
+[cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));

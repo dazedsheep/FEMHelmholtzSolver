@@ -1,4 +1,4 @@
-function [i, u, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, scaleBoundaryCondition, threshold)
+function [i, u, F] = solveWesterveltMultiLevelTest(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, threshold, speed_of_sound, diffusivity)
 
 n = size(elements.points,1);
 N = nHarmonics;
@@ -6,8 +6,14 @@ h = zeros(n,1);
 
 waitbar_handle = waitbar(0,'Initializing waitbar...');
 
+% now we iterate and apply the multilevel scheme that converges to the
+% unique solution of the Westervelt equation
+
+% we will solve N systems yielding N*(N-1)/2 helmholtz solutions but only
+% the solution to the N-th systems is of interest
 u = zeros(N,N,n);
 
+% initialize the needed data
 % extract nodes numbers of the 3 vertices of each triangle 
 n1x = elements.points(elements.tri(:,1),1).'; 
 n1y = elements.points(elements.tri(:,1),2).'; 
@@ -56,16 +62,16 @@ e_Vec = elements.points(elements.bedges(:,1),:) - elements.points(elements.bedge
 e_len = sqrt(sum(e_Vec.^2,2));
 
 % boundary element mass matrix
-t_bM = e_len'/6 .* [2;1;1;2]; 
+t_bM = e_len'/6 .* [1;2;2;1]; 
 
 % local to global index for the boundary
-brow = elements.bedges(:,[1 2 1 2]).';
-bcol = elements.bedges(:,[1 1 2 2]).';
+brow = elements.bedges(:,[1,2,1,2]);
+bcol = elements.bedges(:,[1,1,2,2]);
 
 % sparse boundary mass matrix
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
 
-handleWaitbar = waitbar(0, waitbar_handle, sprintf('%d of %d iterations done.', 0, N));
+waitbar(0, waitbar_handle, sprintf('%d of %d iterations done.', 0, N))
 F = zeros(N, n);
 elapsedTime = -1;
 for i=1:N    
@@ -83,12 +89,10 @@ for i=1:N
             p_m = p_m + 2.*squeeze(sum(conj(u(i-1,(((j+2):2:(2*i-j))-j)/2,:)).*u(i-1,(((j+2):2:(2*i-j))+j)/2,:),2)).';
         end
 
-        F(j,:) = kappa(:,j).^2.*(-excitation(:,j) - 1/2.*f.*j^2.*p_m.');
-        if scaleBoundaryCondition == true
-            u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta*1/j, -F(j,:).', h, n, K, rowK, colK, M_t, tBM);
-        else
-            u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta, -F(j,:).', h, n, K, rowK, colK, M_t, tBM);
-        end
+        F(j,:) = excitation(:,j) - 1/2.*f.*j^2.*omega.^2.*p_m.';
+      
+        u(i,j,:) = solveHelmholtzCondensedCTest(elements, j*omega, gamma, j*kappa(:,j), beta*1/j, -F(j,:).', h, n, (speed_of_sound^2 + 1i*omega*j*diffusivity).*K, rowK, colK, M_t, tBM);
+
         if i==2 && j==2
             elapsedTime = toc;
         end
@@ -103,7 +107,5 @@ for i=1:N
         end
     end
 end
-
-close(handleWaitbar);
 
 end

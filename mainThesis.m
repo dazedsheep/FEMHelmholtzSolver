@@ -14,7 +14,7 @@ bcenter = [0,0];
 brad = 1;
 domain = [bcenter, brad];
 % non linearity parameter of our domain (water = 5)
-sourceValueDomain = 0;
+sourceValueDomain = 5;
 
 % point scatterers and their domain
 values = [9, 0];
@@ -63,7 +63,7 @@ kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionI
 % build a point source (regularized dirac)
 
 % the source needs to be scaled by omega^2, this matches the SI units
-source = omega^2./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*createPointSource(elements, excitationPoints, meshSize/2).*pressure;  
+source = pressure.*createPointSource(elements, excitationPoints, meshSize/2);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
