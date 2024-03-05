@@ -17,7 +17,7 @@ domain = [bcenter, brad];
 sourceValueDomain = 5;
 
 % point scatterers and their domain
-values = [9, 0];
+values = [0, 0];
 refractionIndex = [1, 1];
 % linear case
 %values = [0, 0];
@@ -26,8 +26,8 @@ centers = [0, 0; 0.5, 0.2];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 5; % minimum number of harmonics
-nHarmonics = 5; % maximum number of harmonics
+minHarmonics = 30; % minimum number of harmonics
+nHarmonics = 30; % maximum number of harmonics
 
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
@@ -39,7 +39,7 @@ meshSize = 0.005;
 excitationPoints = [0;0.8];
 % typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
 % frequency -> lower pressure!
-pressure = 10*10^6;
+pressure = 5*10^6;
 excitationPointsSize = [0.01];
 %excitationPower(1,1) = referencePressure;
 %excitationPower(1,2:nHarmonics) = 0;
@@ -62,12 +62,12 @@ kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionI
 %source = 1./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*gaussianSource(elements, excitationPoints, 0.6);
 % build a point source (regularized dirac)
 
-% the source needs to be scaled by omega^2, this matches the SI units
-source = pressure.*createPointSource(elements, excitationPoints, meshSize/2);  
+% the source needs to be scaled by omega^2, this matches the SI units, we
+% assume that the exication is shifted by pi
+source = exp(1i.*pi).*pressure.*createPointSource(elements, excitationPoints, meshSize/2);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-%excitation = 1i./(speed_of_sound.^2 + 1i .* (1:nHarmonics) .* omega .* diffusivity).*excitation;
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
@@ -102,6 +102,11 @@ for j=(min(size(H,1),cN) - iter):min(size(H,1),cN)
    
 end
 
+% also calculate the solution to the linear equation for comparison
+lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
+
+
+
 %figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
 
 %% points along a line segment (cut through)
@@ -110,7 +115,8 @@ end
 % due to the mesh, the peak  of the source may be a little off
 [v,peakidx] = max(P(1,1,:));
 
-lsegStart = elements.points(peakidx,:)';
+%lsegStart = elements.points(peakidx,:)';
+lsegStart = [0;0.8];
 lsegEnd = [0;-0.7];
 
 npoints = 4000; 
@@ -130,30 +136,32 @@ coords = [elements.points(idxList,1)';elements.points(idxList,2)'];
 t = 1;
 
 pPoint = squeeze(P(iter,t,idxList));
-
+lpPoint = squeeze(lP(t, idxList));
 % find the points in space which are directly affected by nonlinearity
 idxNonlinearity = find((sqrt(dot(points - centers(:,1) ,points - centers(:,1))) < radii(1))==1);
 
 pointdist = sqrt(dot(points - excitationPoints,points - excitationPoints));
 % smooth the data for plotting
 smdata = smoothdata(pPoint, 'gaussian', 50);
-figure, plot(pointdist, smdata)
+lpsmdata = smoothdata(lpPoint, 'gaussian', 50);
+figure, plot(pointdist, smdata,"LineWidth",1)
 hold on
-plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
-xlabel('x');
-ylabel('Pa');
+plot(pointdist, lpsmdata, "LineStyle", "--", "Color", "black","LineWidth",1);
+%plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
+xlabel('x [m]');
+ylabel('Acoustic Pressure [Pa]');
 
 
 %%
 figure, plot(pointdist, smdata)
 hold on
-figure, plot(pointdist, 10*log10(abs(smdata)/referencePressure))
+figure, plot(pointdist, 10*log10(abs(smdata)/pressure))
 xlabel('x');
 ylabel('Pa');
 
 %% pick a point and look at the frequency domain
 % therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
-point = [0;0.1];
+point = [0;-0.4];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 
@@ -174,30 +182,39 @@ end
 % ylabel("Acoustinc Pressure [Pa]");
 % xlabel("Time [ms]");
 
+MaxBins = 5;
+P0 = max(pressure,max(P(1,1,:)));
+
+
 window = hanning(N);
 freq =  Fs/N*(0:(N/2));
 y = abs(fft(window'.*real(pC)))/N;
 y1 = y(1:N/2+1);
 y1(2:end-1) = 2*y1(2:end-1);
 shiftedTF = fftshift(fft(real(pC)))/N;
-TFdB = 10*log10(y1/pressure);
+TFdB = 10*log10(y1/P0);
 fscaling = 10^3;
-figure, plot(freq./fscaling, TFdB(1:N/2+1))
+M = min(MaxBins, N/2 + 1);
+xaxis = freq./fscaling;
+figure, plot(xaxis, TFdB(1:N/2+1))
 xlabel("Frequency [kHz]")
 ylabel("P/P0 [dB]")
 
 %%
 Fs = 1/T * 2 * (nHarmonics+1)*20;
 
-N = 3000;
+N = 2000;
 pC = zeros(1,N);
 for m=1:nHarmonics
     pC = pC + U(m,idx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
 end
+lpC = H(1,1,idx).* exp(1i.*omega.*(0:(N-1))*1/Fs);
 
 time = (0:(N-1))*1/Fs;
 timescale = 10^3;
 figure, plot(time*timescale,real(pC))
+hold on
+plot(time*timescale,real(lpC), "LineStyle","--")
 ylabel("Acoustinc Pressure [Pa]");
 xlabel("Time [ms]");
 
@@ -262,7 +279,7 @@ figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),
 figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(coupling(2,:)), 'facecolor', 'interp'); shading interp;
 
 %% build pressure from multiharmonic expansion
-t_step = 1/(nHarmonics/T);
+t_step = 0.01;
 %t_step = 0.0005;
 % simulate 1000 steps
 %tind = 0:t_step:10000*t_step;
@@ -270,11 +287,11 @@ tind = 0:t_step:1;
 n_t = size(tind,2);
 
 % construct p(t,x)
-z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
+z = repmat(exp(1i.*omega.*T.*tind)', 1, size(U,2));
 pC = zeros(size(z,1), size(z,2));
 
 for k=1:nHarmonics
-    pC = pC + repmat(U(k,:),size(z,1),1).*repmat(exp(1i.*k.*w.*tind.*T)', 1, size(U,2));
+    pC = pC + repmat(U(k,:),size(z,1),1).*repmat(exp(1i.*k.*omega.*tind.*T)', 1, size(U,2));
 end
 
 P = real(pC);
@@ -291,7 +308,7 @@ pPoint = P(iter,:,pcenterIdx);
 %% let's take a look at p(t,x); playback the periodic solution
 figure;
 for i=1:1:n_t
-    trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P(iter,i,:), 'facecolor', 'interp'); shading interp;
+    trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P(i,:), 'facecolor', 'interp'); shading interp;
     view([0 90]);
     drawnow
     pause(1)

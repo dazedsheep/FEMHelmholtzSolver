@@ -83,7 +83,7 @@ for i=1:N
             p_m = p_m + 2.*squeeze(sum(conj(u(i-1,(((j+2):2:(2*i-j))-j)/2,:)).*u(i-1,(((j+2):2:(2*i-j))+j)/2,:),2)).';
         end
 
-        F(j,:) = kappa(:,j).^2.*(-excitation(:,j) - 1/2.*f.*j^2.*p_m.');
+        F(j,:) = j^2.*kappa(:,j).^2.*(-excitation(:,j) - 1/2.*f.*p_m.');
         if scaleBoundaryCondition == true
             u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta*1/j, F(j,:).', h, n, K, rowK, colK, M_t, tBM);
         else
