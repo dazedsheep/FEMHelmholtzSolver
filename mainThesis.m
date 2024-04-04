@@ -14,7 +14,7 @@ bcenter = [0,0];
 brad = 1;
 domain = [bcenter, brad];
 % non linearity parameter of our domain (water = 5)
-sourceValueDomain = 5;
+sourceValueDomain = 8;
 
 % point scatterers and their domain
 values = [0, 0];
@@ -26,8 +26,8 @@ centers = [0, 0; 0.5, 0.2];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 30; % minimum number of harmonics
-nHarmonics = 30; % maximum number of harmonics
+minHarmonics = 10; % minimum number of harmonics
+nHarmonics = 10; % maximum number of harmonics
 
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
@@ -68,7 +68,11 @@ source = exp(1i.*pi).*pressure.*createPointSource(elements, excitationPoints, me
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+% [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+% H = U;
+% U = squeeze(U(cN,:,:));
+
+[cN, U, F] = solveWesterveltMultiLevelConstAfterM(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics,3, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
 
@@ -108,6 +112,17 @@ lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).
 
 
 %figure, plot(abs(p_L_2(2:(size(p_L_2,2))) - p_L_2(1:(size(p_L_2,2)-1))))
+%%
+harmonic = 2;
+
+for i = harmonic:(nHarmonics-1)
+    d_L_2(i) = sqrt(sum(abs(H(i,harmonic,:) - H(i+1,harmonic,:)).^2));
+
+end
+figure, plot(d_L_2)
+set(gca, 'YScale', 'log')
+xlabel("Iterations (N)");
+ylabel("L^2 Error");
 
 %% points along a line segment (cut through)
 % lsegStart = [-1/2;-1/2];
@@ -115,9 +130,9 @@ lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).
 % due to the mesh, the peak  of the source may be a little off
 [v,peakidx] = max(P(1,1,:));
 
-%lsegStart = elements.points(peakidx,:)';
+lsegStart = elements.points(peakidx,:)';
 lsegStart = [0;0.8];
-lsegEnd = [0;-0.7];
+lsegEnd = [0;0.8-1.4];
 
 npoints = 4000; 
 
@@ -161,7 +176,7 @@ ylabel('Pa');
 
 %% pick a point and look at the frequency domain
 % therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
-point = [0;-0.4];
+point = [0;-0.18];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 
@@ -201,7 +216,7 @@ xlabel("Frequency [kHz]")
 ylabel("P/P0 [dB]")
 
 %%
-Fs = 1/T * 2 * (nHarmonics+1)*20;
+Fs = 1/T * 2 * (nHarmonics+1)*5;
 
 N = 2000;
 pC = zeros(1,N);

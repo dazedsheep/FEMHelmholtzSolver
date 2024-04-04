@@ -39,7 +39,7 @@ meshSize = 0.005;
 
 % build a linear array
 excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;0.8,0.8,0.8,0.8,0.8];
-angles = exp(1i.*omega.*[-pi,-pi,0,0,pi,pi]);
+angles = exp(1i.*omega.*[-pi,-pi,0,pi,pi]);
 % typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
 % frequency -> lower pressure!
 pressure = 100*10^4;
@@ -73,3 +73,9 @@ excitation(:,1) = source;
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
+
+%% array factor for linear arrays
+theta = -90:0.1:90;
+beamAngle = 0;
+Nelements = 5;
+AF = sin((Nelements.*pi.*lambda./4)/lambda.*(sin(theta) - sin(beamAngle)))./(Nelements.*((pi.*lambda./4)./lambda).*(sin(theta) - sin(beamAngle)));
