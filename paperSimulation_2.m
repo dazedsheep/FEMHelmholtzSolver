@@ -106,7 +106,7 @@ for j=(min(size(H,1),cN) - iter):min(size(H,1),cN)
    
 end
 
-% also calculate the solution to the linear equation for comparison
+% in this case this is not the linear solution as we use convection
 lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
 
 %% pick a point and look at the frequency domain
@@ -170,17 +170,17 @@ xlabel("Time [ms]");
 %% Plot the boundary of our domain
 
 boundaryValues = squeeze(P(1,1,elements.bedges(:,1)));
-boundaryValuesLinear = squeeze(lP(1,elements.bedges(:,1)));
+boundaryValuesFirstHarmonic = squeeze(lP(1,elements.bedges(:,1)));
 figure, plot(abs(boundaryValues))
 hold on
-plot(abs(boundaryValuesLinear))
+plot(abs(boundaryValuesFirstHarmonic))
 hold off
 
-figure, plot(boundaryValuesLinear.' - boundaryValues);
+figure, plot(boundaryValuesFirstHarmonic.' - boundaryValues);
 
 scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedges(:,1),2), boundaryValues, 'filled');
 hold on
-scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedges(:,1),2), boundaryValuesLinear, 'filled');
+scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedges(:,1),2), boundaryValuesFirstHarmonic, 'filled');
 
 %% Plot the boundary of the object in our domain (water filled object)
 
@@ -200,10 +200,10 @@ end
 objectBoundary = boundary(objectVertices);
 boundaryIndices = objectVerticesIds(objectBoundary,1);
 boundaryValues = squeeze(P(1,1,boundaryIndices));
-boundaryValuesLinear = squeeze(lP(1,boundaryIndices));
+boundaryValuesFirstHarmonic = squeeze(lP(1,boundaryIndices));
 figure, plot(abs(boundaryValues))
 hold on
-plot(abs(boundaryValuesLinear))
+plot(abs(boundaryValuesFirstHarmonic))
 hold off
 
 figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryIndices,2), boundaryValues, 'filled');
