@@ -63,8 +63,8 @@ kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionI
 % build a point source (regularized dirac)
 
 % the source needs to be scaled by omega^2, this matches the SI units, we
-% assume that the exication is shifted by pi
-source = exp(1i.*pi).*pressure.*createPointSource(elements, excitationPoints, meshSize/2);  
+% assume that the exication is shifted by pi/2
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize/2);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
@@ -176,7 +176,7 @@ ylabel('Pa');
 
 %% pick a point and look at the frequency domain
 % therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
-point = [0;-0.18];
+point = [0.0;0.05];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 
@@ -233,6 +233,11 @@ plot(time*timescale,real(lpC), "LineStyle","--")
 ylabel("Acoustinc Pressure [Pa]");
 xlabel("Time [ms]");
 
+%% Plot the boundary of our domain
+
+boundaryValues = squeeze(P(1,1,elements.bedges(:,1)));
+boundaryValuesLinear = squeeze(lP(1,elements.bedges(:,1)));
+
 %% solution with Green's function for the linear case
 H = 1i/4 .* besselh(0,omega.*pointdist./speed_of_sound);
 figure,plot(real(H))
@@ -247,17 +252,17 @@ tind = 0:0.01:20;
 n_t = size(tind,2);
 
 % compute only for n iterations
-maxHarmonics = 1;
+maxHarmonics = 3;
 
 % construct p(t,x)
-z = repmat(exp(-1i.*w.*T.*tind)', 1, size(U,2));
+z = repmat(exp(-1i.*omega.*T.*tind)', 1, size(U,2));
 P = zeros(maxHarmonics, size(z,1), size(z,2));
 o = 0;
 for j=1:maxHarmonics
     o = o + 1;
     rpC = zeros(size(z,1), size(z,2));
     for k=1:j
-        rpC = rpC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*w.*tind.*T).', 1, size(U,2));
+        rpC = rpC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*omega.*tind.*T).', 1, size(U,2));
     end
     p_L_2(o) = sqrt(sum(sum(real(rpC).^2, 2).^2,1));
     p_L_2_t(o) = sqrt(sum(real(rpC(1,:)).^2, 2));
