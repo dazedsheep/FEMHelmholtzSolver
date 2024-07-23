@@ -4,7 +4,8 @@
 clearvars
 
 massDensity = 1000; %kg/m^3
-speed_of_sound = 344; % m/s (reference in water)
+speed_of_sound = 344; % m/s (reference in air)
+speed_of_sound_water = 1480; % m/s
 
 % signal period or center frequency
 T = 10^-4;
@@ -16,8 +17,6 @@ lambda = speed_of_sound/(1/T);
 linArrayY = 0.0;
 excitationPoints = [-4*lambda/4, -3*lambda/4, -2*lambda/4, -lambda/4, 0, lambda/4, 2*lambda/4, 3*lambda/4, 4*lambda/4;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
 
-speed_of_sound = 344;
-
 % our domain
 bcenter = [0,0];
 brad = 1;
@@ -27,7 +26,7 @@ sourceValueDomain = 1;
 
 % point scatterers and their domain
 values = [5];
-refractionIndex = [1/4.3023];
+refractionIndex = [speed_of_sound/speed_of_sound_water];
 radii = [0.35];
 centers = [0; 0.37];
 
@@ -80,7 +79,7 @@ clear H
 % Phantom 1
 % point scatterers and their domain
 values = [5, 9];
-refractionIndex = [1/4.3023, 1/4.3023];
+refractionIndex = repmat(speed_of_sound/speed_of_sound_water, 1, 2);
 radii = [0.35, 0.05];
 centers = [0, -0.2; 0.37, 0.3];
 
@@ -106,7 +105,7 @@ clear H
 
 % point scatterers and their domain
 values = [5, 10];
-refractionIndex = [1/4.3023, 1/4.3023];
+refractionIndex = repmat(speed_of_sound/speed_of_sound_water, 1, 2);
 
 radii = [0.35, 0.04];
 centers = [0, 0.2; 0.37, 0.3];
@@ -133,7 +132,7 @@ clear H
 
 % point scatterers and their domain
 values = [5, 12];
-refractionIndex = [1/4.3023, 1/4.3023];
+refractionIndex = repmat(speed_of_sound/speed_of_sound_water, 1, 2);
 radii = [0.35, 0.06];
 centers = [0, 0; 0.37, 0.15];
 
@@ -160,7 +159,7 @@ clear H
 
 % point scatterers and their domain
 values = [5, 9, 10];
-refractionIndex = [1/4.3023, 1/4.3023, 1/4.3023];
+refractionIndex = repmat(speed_of_sound/speed_of_sound_water, 1, 3);
 
 radii = [0.35, 0.05, 0.04];
 centers = [0, -0.2, 0.2; 0.37, 0.3,0.3];
@@ -187,7 +186,7 @@ clear H
 % 3 phantoms
 % point scatterers and their domain
 values = [5, 9, 10, 12];
-refractionIndex = [1/4.3023, 1/4.3023, 1/4.3023, 1/4.3023];
+refractionIndex = repmat(speed_of_sound/speed_of_sound_water, 1, 4);
 radii = [0.35, 0.05, 0.04,0.06];
 centers = [0, -0.2, 0.2, 0; 0.37, 0.3,0.3,0.15];
 
@@ -224,7 +223,7 @@ scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedge
 hold on
 scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedges(:,1),2), boundaryValuesFirstHarmonic, 'filled');
 
-%% Plot the boundary of the object in our domain (water filled object)
+%% calc the point of the boundary of the object in our domain (water filled object)
 
 % which of the objects is the domain of interest?
 j = 1;
@@ -336,8 +335,8 @@ ylabel('Pa')
 legend('$p_0(0,x) - p_{1,2,3}(0,x)$', 'Interpreter', 'latex')
 xlim([-pi,pi])
 
-%%
-% select a for points on the boundary (-pi,-pi/2,0,pi/2) and look at the
+%% auxilar plots
+% select a point on the boundary and take look at the
 % time behaviour
 
 % sampling frequency
@@ -358,8 +357,10 @@ timescale = 10^3;
 figure
 subplot(3,1,1)
 plot(time*timescale,real(pC_no_phantoms))
+ylabel("Acoustinc Pressure [Pa]");
 subplot(3,1,2)
 plot(time*timescale,real(pC_no_phantoms - pC_two_phantoms))
+ylabel("Acoustinc Pressure [Pa]");
 subplot(3,1,3)
 plot(time*timescale,real(pC_no_phantoms - pC_three_phantoms))
 ylabel("Acoustinc Pressure [Pa]");
