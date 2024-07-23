@@ -1,4 +1,6 @@
-%% Solver for the periodic Westervelt equation
+%% This file simulates the study of the paper
+% after computing the solutions for different inclusions and B/A values
+% the figures are plotted
 clearvars
 
 massDensity = 1000; %kg/m^3
@@ -12,11 +14,9 @@ omega = 2*pi*1/T; % angular velocity
 lambda = speed_of_sound/(1/T);
 
 linArrayY = 0.0;
-excitationPoints = [-4*lambda/4, -3*lambda/4, -2*lambda/4,-lambda/4, 0, lambda/4, 2*lambda/4, 3*lambda/4, 4*lambda/4;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
-%excitationPoints = [0;0];
+excitationPoints = [-4*lambda/4, -3*lambda/4, -2*lambda/4, -lambda/4, 0, lambda/4, 2*lambda/4, 3*lambda/4, 4*lambda/4;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
 
 speed_of_sound = 344;
-
 
 % our domain
 bcenter = [0,0];
@@ -26,12 +26,10 @@ domain = [bcenter, brad];
 sourceValueDomain = 1;
 
 % point scatterers and their domain
-values = [7, 9, 10, 15];
-refractionIndex = [1/4.3023, 1/4.3023, 1/4.3023, 1/4.3023];
-% linear case
-%values = [0, 0];
-radii = [0.35, 0.05, 0.04,0.06];
-centers = [0, -0.2, 0.2, 0; 0.37, 0.3,0.3,0.15];
+values = [5];
+refractionIndex = [1/4.3023];
+radii = [0.35];
+centers = [0; 0.37];
 
 diffusivity = 10^(-9);
 
@@ -65,9 +63,31 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-% build a gaussian source
-%source = pressure.*gaussianSource(elements, excitationPoints, 0.6);
-% build a point source (regularized dirac)
+% we need to scale the reference pressure to the "point" source
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
+
+[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+H = U;
+U_no_phantoms = squeeze(U(cN,:,:));
+
+P_no_phantoms = calcPressureProfile(omega, T, H, U_no_phantoms, cN);
+
+clear H
+
+
+% Phantom 1
+% point scatterers and their domain
+values = [5, 9];
+refractionIndex = [1/4.3023, 1/4.3023];
+radii = [0.35, 0.05];
+centers = [0, -0.2; 0.37, 0.3];
+
+% construct nonlinearity
+f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+% construct all space dependent wave numbers for all harmonics
+kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
 % we need to scale the reference pressure to the "point" source
 source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
@@ -76,96 +96,118 @@ excitation(:,1) = source;
 
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
-U = squeeze(U(cN,:,:));
+U_one_phantom = squeeze(U(cN,:,:));
 
-%%
-% calc the solution(s) for the multi level harmonic approximation
-t_step = 1/(4/T);
-%t_step = 0.0005;
-% simulate 1000 steps
-%tind = 0:t_step:10000*t_step;
-tind = 0:0.01:0.02;
-n_t = size(tind,2);
+P_one_phantom = calcPressureProfile(omega, T, H, U_one_phantom, cN);
 
-% compute only for n iterations
-iter = 1;
+clear H
 
-% construct p(t,x)
-z = repmat(exp(-1i.*omega.*T.*tind)', 1, size(U,2));
-P = zeros(iter, size(z,1), size(z,2));
-o = 0;
-for j=(min(size(H,1),cN) - iter):min(size(H,1),cN)
-    o = o + 1;
-    rpC = zeros(size(z,1), size(z,2));
-    for k=1:j
-        rpC = rpC + squeeze(repmat(H(j,k,:),size(z,1),1)).*repmat(exp(1i.*k.*omega.*tind.*T).', 1, size(U,2));
-    end
-    p_L_2(o) = sqrt(sum(sum(real(rpC).^2, 2).^2,1));
-    p_L_2_t(o) = sqrt(sum(real(rpC(1,:)).^2, 2));
-    P(o,:,:) = real(rpC);
-   
-end
+% Phantom 2
 
-% in this case this is not the linear solution as we use convection
-lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
+% point scatterers and their domain
+values = [5, 10];
+refractionIndex = [1/4.3023, 1/4.3023];
 
-%% pick a point and look at the frequency domain
-% therefore we sample at 2*f_max which is in our case 2*nHarmonics*1/T
-point = [0.0;0.1];
+radii = [0.35, 0.04];
+centers = [0, 0.2; 0.37, 0.3];
 
-[v,idx] = min(sum((elements.points - point(:)').^2,2)); 
+% construct nonlinearity
+f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+% construct all space dependent wave numbers for all harmonics
+kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-node = [elements.points(idx,1);elements.points(idx,2)];
+% we need to scale the reference pressure to the "point" source
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
 
-% sampling frequency in time
-Fs = 1/T * 2 * (nHarmonics+1);
+[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+H = U;
+U_phantom_two = squeeze(U(cN,:,:));
 
-N = 2000;
-pC = zeros(1,N);
-for m=1:nHarmonics
-    pC = pC + U(m,idx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
-end
+P_phantom_two = calcPressureProfile(omega, T, H, U_phantom_two, cN);
 
-% time = (0:(N-1))*1/Fs;
-% timescale = 10^3;
-% figure, plot(time*timescale,real(pC))
-% ylabel("Acoustinc Pressure [Pa]");
-% xlabel("Time [ms]");
+clear H
 
-MaxBins = 5;
-P0 = max(pressure,max(P(1,1,:)));
+% Phantom 3
+
+% point scatterers and their domain
+values = [5, 12];
+refractionIndex = [1/4.3023, 1/4.3023];
+radii = [0.35, 0.06];
+centers = [0, 0; 0.37, 0.15];
+
+% construct nonlinearity
+f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+% construct all space dependent wave numbers for all harmonics
+kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
+
+% we need to scale the reference pressure to the "point" source
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
+
+[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+H = U;
+U_phantom_three = squeeze(U(cN,:,:));
+
+P_phantom_three = calcPressureProfile(omega, T, H, U_phantom_three, cN);
+
+clear H
 
 
-window = hanning(N);
-freq =  Fs/N*(0:(N/2));
-y = abs(fft(window'.*real(pC)))/N;
-y1 = y(1:N/2+1);
-y1(2:end-1) = 2*y1(2:end-1);
-shiftedTF = fftshift(fft(real(pC)))/N;
-TFdB = 10*log10(y1/P0);
-fscaling = 10^3;
-M = min(MaxBins, N/2 + 1);
-xaxis = freq./fscaling;
-figure, plot(xaxis, TFdB(1:N/2+1))
-xlabel("Frequency [kHz]")
-ylabel("P/P0 [dB]")
-%%
-Fs = 1/T * 2 * (nHarmonics+1)*5;
+% 2 phantoms
 
-N = 2000;
-pC = zeros(1,N);
-for m=1:nHarmonics
-    pC = pC + U(m,idx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
-end
-lpC = H(1,1,idx).* exp(1i.*omega.*(0:(N-1))*1/Fs);
+% point scatterers and their domain
+values = [5, 9, 10];
+refractionIndex = [1/4.3023, 1/4.3023, 1/4.3023];
 
-time = (0:(N-1))*1/Fs;
-timescale = 10^3;
-figure, plot(time*timescale,real(pC))
-hold on
-plot(time*timescale,real(lpC), "LineStyle","--")
-ylabel("Acoustinc Pressure [Pa]");
-xlabel("Time [ms]");
+radii = [0.35, 0.05, 0.04];
+centers = [0, -0.2, 0.2; 0.37, 0.3,0.3];
+
+% construct nonlinearity
+f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+% construct all space dependent wave numbers for all harmonics
+kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
+
+
+% we need to scale the reference pressure to the "point" source
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
+
+[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+H = U;
+U_two_phantoms = squeeze(U(cN,:,:));
+
+P_two_phantoms = calcPressureProfile(omega, T, H, U_two_phantoms, cN);
+
+clear H
+
+% 3 phantoms
+% point scatterers and their domain
+values = [5, 9, 10, 12];
+refractionIndex = [1/4.3023, 1/4.3023, 1/4.3023, 1/4.3023];
+radii = [0.35, 0.05, 0.04,0.06];
+centers = [0, -0.2, 0.2, 0; 0.37, 0.3,0.3,0.15];
+
+% construct nonlinearity
+f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+% construct all space dependent wave numbers for all harmonics
+kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
+
+% we need to scale the reference pressure to the "point" source
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+excitation = zeros(size(elements.points,1),nHarmonics);
+excitation(:,1) = source;
+
+[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+H = U;
+U_three_phantoms = squeeze(U(cN,:,:));
+
+P_three_phantoms = calcPressureProfile(omega, T, H, U_three_phantoms, cN);
+
+clear U H
 
 %% Plot the boundary of our domain
 
@@ -184,28 +226,159 @@ scatter3(elements.points(elements.bedges(:,1),1), elements.points(elements.bedge
 
 %% Plot the boundary of the object in our domain (water filled object)
 
-%which of the objects is the domain of interest?
+% which of the objects is the domain of interest?
 j = 1;
 
+% get the elements for the object
 objectVertices = [];
 n = 1;
 for i=1:size(elements.points,1)
-    if norm(elements.points(i,:) - centers(:,j)',2) < radii(j)
+    if norm(elements.points(i,:) - centers(:,j)',2) <= radii(j)
         objectVertices(n,:) = elements.points(i,:);
         objectVerticesIds(n,1) = i;
         n = n + 1;
     end
 end
 
+% calculate the objects' boundary
 objectBoundary = boundary(objectVertices);
 boundaryIndices = objectVerticesIds(objectBoundary,1);
-boundaryValues = squeeze(P(1,1,boundaryIndices));
-boundaryValuesFirstHarmonic = squeeze(lP(1,boundaryIndices));
-figure, plot(abs(boundaryValues))
-hold on
-plot(abs(boundaryValuesFirstHarmonic))
-hold off
 
-figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryIndices,2), boundaryValues, 'filled');
+% get the boundary values for the different solutions
+boundaryValuesNoPhantoms = squeeze(P_no_phantoms(1,1,boundaryIndices));
+boundaryValuesOnePhantom  = squeeze(P_one_phantom(1,1,boundaryIndices));
+boundaryValuesTwoPhantoms  = squeeze(P_two_phantoms(1,1,boundaryIndices));
+boundaryValuesThreePhantoms  = squeeze(P_three_phantoms(1,1,boundaryIndices));
+boundaryValuesPhantomTwo = squeeze(P_phantom_two(1,1,boundaryIndices));
+boundaryValuesPhantomThree = squeeze(P_phantom_three(1,1,boundaryIndices));
+
+% find the boundary point nearest to the source
+sourceLocation = [0,0];
+dists = repmat(sourceLocation,size(elements.points(boundaryIndices,:),1),1)  - elements.points(boundaryIndices,:);
+[dist, idx] = min(diag(dists*dists'));
+
+% compute angles w.r.t. to source being at 0 rads
+relativeBoundaryPoints = elements.points(boundaryIndices,:) - repmat(centers(:,1)',size(elements.points(boundaryIndices,:),1),1);
+
+% get the angle and shift appropriately
+angles = angle((relativeBoundaryPoints(:,1)+1i*relativeBoundaryPoints(:,2))*exp(1i*pi/2));
+
+%%
+figure, plot(abs(boundaryValuesNoPhantoms - boundaryValuesOnePhantom))
+hold on
+plot(abs(boundaryValuesNoPhantoms - boundaryValuesTwoPhantoms))
+hold on
+plot(abs(boundaryValuesNoPhantoms - boundaryValuesThreePhantoms))
+hold on
+xline(idx)
+
+figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryIndices,2), boundaryValuesNoPhantoms, 'filled');
 xlabel("x")
 ylabel("y")
+
+% scatter differnce plots
+figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryIndices,2), boundaryValuesNoPhantoms - boundaryValuesOnePhantom, 'filled');
+xlabel("x")
+ylabel("y")
+
+%% (difference) boundary values at t=0
+indices = 1:(size(angles,1)-3); % this is due to the triangulation
+b1 = boundaryValuesNoPhantoms - boundaryValuesOnePhantom;
+b2 = boundaryValuesNoPhantoms - boundaryValuesPhantomTwo;
+b3 = boundaryValuesNoPhantoms - boundaryValuesPhantomThree;
+b4 = boundaryValuesNoPhantoms - boundaryValuesTwoPhantoms;
+b5 = boundaryValuesNoPhantoms - boundaryValuesThreePhantoms;
+figure
+subplot(3,2,1)
+plot(angles(indices), b1(indices))
+xline(0)
+xlabel('rad from source')
+legend('$p_0(0,x) - p_1(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+ylabel('Pa')
+subplot(3,2,3)
+plot(angles(indices), b2(indices))
+xline(0)
+xlabel('rad from source')
+ylabel('Pa')
+legend('$p_0(0,x) - p_2(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+
+subplot(3,2,5)
+plot(angles(indices), b3(indices))
+xline(0)
+xlabel('rad from source')
+ylabel('Pa')
+legend('$p_0(0,x) - p_3(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+
+subplot(3,2,2)
+plot(angles(indices), boundaryValuesNoPhantoms(indices))
+xline(0)
+xlabel('rad from source')
+ylabel('Pa')
+legend('$p_0(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+
+subplot(3,2,4)
+plot(angles(indices), b4(indices))
+xline(0)
+xlabel('rad from source')
+ylabel('Pa')
+legend('$p_0(0,x) - p_{1,2}(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+
+subplot(3,2,6)
+plot(angles(indices), b5(indices))
+xline(0)
+xlabel('rad from source')
+ylabel('Pa')
+legend('$p_0(0,x) - p_{1,2,3}(0,x)$', 'Interpreter', 'latex')
+xlim([-pi,pi])
+
+%%
+% select a for points on the boundary (-pi,-pi/2,0,pi/2) and look at the
+% time behaviour
+
+% sampling frequency
+Fs = 10^7;
+pointIdx = boundaryIndices(1157);
+N = 4000;
+pC_no_phantoms = zeros(1,N);
+pC_two_phantoms = zeros(1,N); 
+pC_three_phantoms = zeros(1,N);
+for m=1:nHarmonics
+    pC_no_phantoms = pC_no_phantoms + U_no_phantoms(m,pointIdx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
+    pC_three_phantoms = pC_three_phantoms + U_three_phantoms(m,pointIdx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
+    pC_two_phantoms = pC_two_phantoms + U_two_phantoms(m,pointIdx) .* exp(1i.*m.*omega.*(0:(N-1))*1/Fs);
+end
+
+time = (0:(N-1))*1/Fs;
+timescale = 10^3;
+figure
+subplot(3,1,1)
+plot(time*timescale,real(pC_no_phantoms))
+subplot(3,1,2)
+plot(time*timescale,real(pC_no_phantoms - pC_two_phantoms))
+subplot(3,1,3)
+plot(time*timescale,real(pC_no_phantoms - pC_three_phantoms))
+ylabel("Acoustinc Pressure [Pa]");
+xlabel("Time [ms]");
+
+
+%% plot pressure profile at t=0
+figure
+subplot(1,2,1)
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
+xlabel('x [m]')
+ylabel('y [m]')
+zlabel('Pa')
+colormap('gray')
+view(2)
+subplot(1,2,2)
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
+xlabel('x [m]')
+ylabel('y [m]')
+zlabel('Pa')
+view([-37.5 30])
+colormap('gray')
