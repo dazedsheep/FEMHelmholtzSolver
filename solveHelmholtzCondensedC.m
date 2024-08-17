@@ -1,6 +1,6 @@
 function [U] = solveHelmholtzCondensedC(elements, omega, gamma, kappa, beta, f, hI, n, K, rowK, colK, M_t, tBM)
 
-hVec = zeros(n,1);
+hVec = hI;
 
 KappaSq = repmat(mean(kappa(elements.nodeIndex).^2,2),1,9,1).';
 MC = M_t .* KappaSq;

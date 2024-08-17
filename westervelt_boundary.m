@@ -25,8 +25,8 @@ centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 2; % minimum number of harmonics
-nHarmonics = 2; % maximum number of harmonics
+minHarmonics = 5; % minimum number of harmonics
+nHarmonics = 5; % maximum number of harmonics
 
 gamma = 10^(-9);
 
@@ -34,26 +34,28 @@ beta = 1/speed_of_sound;
 
 meshSize = 0.0005;
 
-excitationPoints = [0;0.0];
+excitationPoints = [0.0,0.0;-0.2,0.2];
 % ultrasound pressure of the "point" source
-pressure = 3*10^5;
-excitationPointsSize = [0.001];
+pressure = 3*10^7;
+excitationPointsSize = [0.001;0.001];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
-
+%%
 % construct non-linearity
 f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
 
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+source = exp(1i.*omega.*pi/2).*pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] =  solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
+
+P_excitation_on_the_boundary = calcPressureProfile(omega, T, H, U, cN);
 
 %% Compute the solution
 tind = 0:0.01:0.02;
@@ -80,44 +82,9 @@ end
 
 % Calculate the solution to the linear equation for comparison
 lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
-%% Plot points along a line segment (cut through)
-
-lsegStart = [0;0];
-lsegEnd = [0;0.2];
-npoints = 4000; 
-
-unitVec = (lsegEnd - lsegStart)/norm((lsegEnd - lsegStart));
-points = lsegStart + unitVec.*norm((lsegEnd - lsegStart),2)/npoints .* (0:(npoints-1));
-
-idxList = zeros(npoints,1);
-
-for j=1:size(points,2)
-        [v,pcenterIdx] = min(sum((elements.points - points(:,j)').^2,2)); 
-        idxList(j) = pcenterIdx;    
-end
-
-coords = [elements.points(idxList,1)';elements.points(idxList,2)'];
-
-t = 1;
-
-pPoint = squeeze(P(iter, t, idxList));
-lpPoint = squeeze(lP(t, idxList));
-% find the points in space which are directly affected by nonlinearity
-idxNonlinearity = find((sqrt(dot(points - centers(:,1) ,points - centers(:,1))) < radii(1))==1);
-
-pointdist = sqrt(dot(points - excitationPoints,points - excitationPoints));
-% smooth the data for plotting
-smdata = smoothdata(pPoint, 'gaussian', 50);
-lpsmdata = smoothdata(lpPoint, 'gaussian', 50);
-figure, plot(pointdist, smdata,"LineWidth",1)
-hold on
-plot(pointdist, lpsmdata, "LineStyle", "--", "Color", "black","LineWidth",1);
-plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
-xlabel('x [m]');
-ylabel('Acoustic Pressure [Pa]');
 
 %% Plot the frequency components 
-point = [0.0;-0.1];
+point = [-0.12;0.0];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 

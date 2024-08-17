@@ -370,14 +370,14 @@ xlabel("Time [ms]");
 %% plot pressure profile at t=0
 figure
 subplot(1,2,1)
-trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
 xlabel('x [m]')
 ylabel('y [m]')
 zlabel('Pa')
 colormap('gray')
 view(2)
 subplot(1,2,2)
-trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), P_three_phantoms(1,1,:), 'facecolor', 'interp'); shading interp;
 xlabel('x [m]')
 ylabel('y [m]')
 zlabel('Pa')
