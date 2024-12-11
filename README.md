@@ -1,2 +1,6 @@
-# FEMHelmholtzSolver
-This repository implements a solver for the Helmholtz equation in 2D using linear lagrange elements
+This repository provides two solvers:
+
+# FEM Helmholtz solver
+
+# Solver for the periodic non-linear Westervelt equation
+
