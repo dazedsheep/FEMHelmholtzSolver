@@ -4,7 +4,7 @@ clearvars
 massDensity = 1000; %kg/m^3
 speed_of_sound = 1480; % m/s
 
-% signal period or center frequency
+% signal period or center frequency of the excitation
 T = 10^-5;
 omega = 2*pi*1/T;
 
@@ -25,8 +25,8 @@ centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 5; % minimum number of harmonics
-nHarmonics = 5; % maximum number of harmonics
+minHarmonics = 8; % minimum number of harmonics
+nHarmonics = 8; % maximum number of harmonics
 
 gamma = 10^(-9);
 
@@ -34,7 +34,9 @@ beta = 1/speed_of_sound;
 
 meshSize = 0.0005;
 
+% put the excitation on the boundary
 excitationPoints = [0.0,0.0;-0.2,0.2];
+
 % ultrasound pressure of the "point" source
 pressure = 3*10^7;
 excitationPointsSize = [0.001;0.001];
@@ -47,10 +49,13 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
+% realistically piezoelectric elements are not of infinitesimal small size
 source = exp(1i.*omega.*pi/2).*pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
+excitation(:,2) = source;
 
+% solve the periodic westervelt equation with excitations on the boundary
 [cN, U, F] =  solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
@@ -84,7 +89,7 @@ end
 lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
 
 %% Plot the frequency components 
-point = [-0.12;0.0];
+point = [0.0;0.0];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 

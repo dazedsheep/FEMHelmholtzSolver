@@ -5,7 +5,7 @@ massDensity = 1000; %kg/m^3
 speed_of_sound = 1480; % m/s
 
 % signal period or center frequency
-T = 10^-5;
+T = 10^-6;
 omega = 2*pi*1/T;
 
 % our domain
@@ -41,6 +41,7 @@ excitationPointsSize = [0.001];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
+%%
 % construct non-linearity
 f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
 
