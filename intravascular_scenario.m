@@ -21,7 +21,7 @@ excitationPoints = [0;0];
 bcenter = [0,0];
 brad = 0.01;
 domain = [bcenter, brad];
-% non linearity parameter of our domain (air = 1)
+% non linearity parameter of our domain (air = 1, blood 6.0 to 7.5)
 sourceValueDomain = 5;
 
 % point scatterers and their domain
@@ -32,8 +32,8 @@ centers = [0 0 0.005 -0.005 0.005 -0.005; 0.005 -0.005 0 0 0.005 -0.005];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 3; % minimum number of harmonics
-nHarmonics = 3; % maximum number of harmonics
+minHarmonics = 2; % minimum number of harmonics
+nHarmonics = 2; % maximum number of harmonics
 
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
@@ -44,7 +44,7 @@ meshSize = 0.00002;
 %linArrayY = 0.0;
 % build a linear array
 % excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
-pressure = 2*10^3;
+pressure = 100; % used to scale the source to approx 2MPa
 excitationPointsSize = [0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001];
 excitationPower(1,1) = pressure;
 excitationPower(1,2:nHarmonics) = 0;
@@ -62,7 +62,7 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-source = exp(1i.*omega.*-pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+source = -exp(1i*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
@@ -71,9 +71,14 @@ H = U;
 U = squeeze(U(cN,:,:));
 
 %% Compute the solution
-tind = 0:0.01:0.02;
-n_t = size(tind,2);
 
+% pick the highest frequency, 1/maxfreq is then the period of the highest
+% harmionic
+
+maxfreq =cN*1/T;
+timepoints = 10;
+tind = linspace(0,1/maxfreq,timepoints);
+n_t = size(tind,2);
 % compute only for n iterations
 iter = 1;
 
@@ -89,9 +94,14 @@ for j=(min(size(H,1),cN) - iter):min(size(H,1),cN)
     end
     p_L_2(o) = sqrt(sum(sum(real(rpC).^2, 2).^2,1));
     p_L_2_t(o) = sqrt(sum(real(rpC(1,:)).^2, 2));
-    P(o,:,:) = real(rpC);
-   
+    P(o,:,:) = real(rpC);   
 end
+
+%% compute the solution for t=0
+
+Psol = zeros(size(U,2));
+
+Psol = real()
 
 % Calculate the solution to the linear equation for comparison
 lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
@@ -116,7 +126,7 @@ coords = [elements.points(idxList,1)';elements.points(idxList,2)'];
 
 t = 1;
 
-pPoint = squeeze(P(iter, t, idxList));
+pPoint = squeeze(P(2, t, idxList));
 lpPoint = squeeze(lP(t, idxList));
 % find the points in space which are directly affected by nonlinearity
 idxNonlinearity = find((sqrt(dot(points - centers(:,1) ,points - centers(:,1))) < radii(1))==1);
@@ -132,7 +142,7 @@ xlabel('x [m]');
 ylabel('Acoustic Pressure [Pa]');
 
 % show also the difference between linear and nonlinear solution
-figure, plot(pointdist, smdata - lpsmdata);
+figure, plot(pointdist, smdata - lpsmdata.');
 
 %% Plot the frequency components 
 point = [0.0;0.0];
@@ -142,7 +152,7 @@ point = [0.0;0.0];
 node = [elements.points(idx,1);elements.points(idx,2)];
 
 % sampling frequency in time
-Fs = 1/T * 2 * (nHarmonics+1);
+Fs = 1/T * 2 * (cN+2);
 
 N = 2000;
 pC = zeros(1,N);
@@ -167,7 +177,7 @@ figure, plot(xaxis, TFdB(1:N/2+1))
 xlabel("Frequency [kHz]")
 ylabel("P/P0 [dB]")
 
-Fs = 1/T * 2 * (nHarmonics+1)*5;
+Fs = 1/T * 2 * cN*5;
 
 N = 2000;
 pC = zeros(1,N);

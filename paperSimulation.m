@@ -5,7 +5,7 @@ massDensity = 1000; %kg/m^3
 speed_of_sound = 1480; % m/s
 
 % signal period or center frequency
-T = 10^-6;
+T = 10^-5;
 omega = 2*pi*1/T;
 
 % our domain
@@ -17,16 +17,16 @@ sourceValueDomain = 5;
 
 % point scatterers and their domain
 values = [0];
-refractionIndex = [1, 1];
+refractionIndex = [1];
 % linear case
 %values = [0, 0];
-radii = [0.25];
+radii = [0.2];
 centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 2; % minimum number of harmonics
-nHarmonics = 2; % maximum number of harmonics
+minHarmonics = 5; % minimum number of harmonics
+nHarmonics = 5; % maximum number of harmonics
 
 gamma = 10^(-9);
 
@@ -34,9 +34,9 @@ beta = 1/speed_of_sound;
 
 meshSize = 0.0005;
 
-excitationPoints = [0;0.0];
+excitationPoints = [0;0];
 % ultrasound pressure of the "point" source
-pressure = 3*10^5;
+pressure = 5*10^5;
 excitationPointsSize = [0.001];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -48,7 +48,7 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 % construct all space dependent wave numbers for all harmonics
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+source = -exp(1i*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
@@ -83,8 +83,8 @@ end
 lP = real(squeeze(repmat(H(1,1,:),size(z,1),1)).*repmat(exp(1i.*omega.*tind.*T).', 1, size(U,2)));
 %% Plot points along a line segment (cut through)
 
-lsegStart = [0;0];
-lsegEnd = [0;0.2];
+lsegStart = [-0.2;0];
+lsegEnd = [0.2;0];
 npoints = 4000; 
 
 unitVec = (lsegEnd - lsegStart)/norm((lsegEnd - lsegStart));
@@ -106,19 +106,19 @@ lpPoint = squeeze(lP(t, idxList));
 % find the points in space which are directly affected by nonlinearity
 idxNonlinearity = find((sqrt(dot(points - centers(:,1) ,points - centers(:,1))) < radii(1))==1);
 
-pointdist = sqrt(dot(points - excitationPoints,points - excitationPoints));
+%pointdist = sqrt(dot(points - excitationPoints,points - excitationPoints));
+pointdist = points(1,:) - excitationPoints(1,:);
 % smooth the data for plotting
 smdata = smoothdata(pPoint, 'gaussian', 50);
 lpsmdata = smoothdata(lpPoint, 'gaussian', 50);
 figure, plot(pointdist, smdata,"LineWidth",1)
 hold on
 plot(pointdist, lpsmdata, "LineStyle", "--", "Color", "black","LineWidth",1);
-plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x [m]');
 ylabel('Acoustic Pressure [Pa]');
 
 %% Plot the frequency components 
-point = [0.0;-0.1];
+point = [-0.2;0];
 
 [v,idx] = min(sum((elements.points - point(:)').^2,2)); 
 

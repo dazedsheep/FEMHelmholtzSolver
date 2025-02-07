@@ -63,7 +63,7 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
 % we need to scale the reference pressure to the "point" source
-source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+source = exp(1i.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
