@@ -1,7 +1,5 @@
-function [U] = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappa, gamma, beta, f, hI, g, n)% we fix the quadrature so we can unroll the integration
-
-hVec = zeros(n,1);
-
+function [U] = solveHelmholtzCVectorizedKappaSampled(elements, omega, kappa, gamma, beta, f, hI, g, n)
+% we fix the quadrature so we can unroll the integration
 
 % initialize the needed data
 % extract nodes numbers of the 3 vertices of each triangle 

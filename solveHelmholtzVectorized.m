@@ -1,7 +1,4 @@
-function [U] = solveHelmholtzVectorized(elements, kappa, beta, f, hI, g, n)
-
-hVec = zeros(n,1);
-FVec = zeros(n,1);
+function [U] = solveHelmholtzVectorized(elements, kappa, beta, f, hI)
 
 % initialize the needed data
 % extract nodes numbers of the 3 vertices of each triangle 

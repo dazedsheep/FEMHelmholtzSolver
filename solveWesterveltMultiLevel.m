@@ -96,12 +96,15 @@ for i=1:N
     end
     
     waitbar(i/N, waitbar_handle, sprintf('%d of %d iterations done (est. time left %f s).', i, N, elapsedTime*(N*N - i*j)))
+   
 
-    if i > minHarmonics
-        if sum(abs(u(i-1,minHarmonics,:) - u(i,minHarmonics,:))) < threshold
-            waitbar(i/N, waitbar_handle, sprintf('Threshold reached in the %d-th harmonic.', minHarmonics))
-            break
-        end
+    if i > 1 && threshold > 0
+        % check if we should stop earlier due to reaching the minimal error
+         
+        [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze(real(sum(u(i,:,:)))) - squeeze(real(sum(u(i-1,:,:))))).^2 )' );
+         if sqrt( int ) < threshold
+             break;
+         end
     end
 end
 
