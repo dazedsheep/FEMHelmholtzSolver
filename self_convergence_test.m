@@ -1,14 +1,14 @@
 %%
-% Self-convergence w.r.t element diameter at fixed speed of sound
-% and pressure, we should see p \approx 1
+% Impact of pollution effect on the convergence w.r.t. the element diameter
+% kappa * h \leq 0.5 is a rule of thumb
 
 clearvars
 
 massDensity = 1000; %kg/m^3
-speed_of_sound = 10; % m/s
+speed_of_sound = 1450; % m/s
 
 % signal period or center frequency
-T = 10^-2;
+T = 10^-5;
 omega = 2*pi*1/T;
 
 % our domain
@@ -28,26 +28,29 @@ centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 6; % minimum number of harmonics
-nHarmonics = 6; % maximum number of harmonics
+minHarmonics = 20; % minimum number of harmonics
+nHarmonics = 20; % maximum number of harmonics
 
-gamma = 10^(-9);
+gamma = 1;
 
 beta = 1/speed_of_sound;
 
 meshSteps = 6;
-initialMeshsize = 0.001;
+
+initialMeshsize = 0.0025;
+
 meshdivfactor = 2;
 x = (-0.05):(initialMeshsize/((meshdivfactor)^(meshSteps+1))):(0.05);
 y = x;
 
 %
 excitationPoints = [0;0];  
+%
+excitationSize = 0.01;
 % prepare the source - take the smallest mesh and create our source
-[source_elements] = initializeMultiLeveLSolver(initialMeshsize/(meshdivfactor^(meshSteps-1)), domain);
+%[source_elements] = initializeMultiLeveLSolver(initialMeshsize/(meshdivfactor^(meshSteps-1)), domain);
 % ultrasound pressure of the "point" source
-pressure = 10^2;
-source = pressure.*createPointSource(source_elements, excitationPoints, 0.001);
+pressure = 2.5*10^4;
 % figure, trisurf(source_elements.tri(:,1:3), source_elements.points(:,1), source_elements.points(:,2), source, 'facecolor', 'interp'); shading interp;
 %%
 for i = 1:meshSteps
@@ -61,23 +64,29 @@ for i = 1:meshSteps
     % construct all space dependent wave numbers for all harmonics
     kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
-    newsource = -exp(1i*pi/2).*source(nearestNeighbor(source_elements.T, elements.points));
+    pointSource = createPointSource(elements, excitationPoints, excitationSize);
+    [area, s] = integrate_fun_trimesh(elements.opoints, elements.otri, pointSource.');
+    source = -exp(1i*pi/2).*pressure.*pointSource./s;  
     
     excitation = zeros(size(elements.points,1),nHarmonics);
     
-    excitation(:,1) = newsource;
+    excitation(:,1) = source;
     
     numDOF(i) = size(elements.triangles,2);
 
-    [cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
-    
+    [cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 0);
+    numIterations(i) = cN;
     H = U;
-    
+    % calculate the difference of consecutive solution over the iterations
+    for k=2:minHarmonics
+        [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze(real(sum(H(k,:,:)))) - squeeze(real(sum(H(k-1,:,:))))).^2 )' );
+        L2errors(i,k-1) = sqrt(int);    
+    end
     U = squeeze(U(cN,:,:));
     
-    singleHelmholtz(i,:,:) = tri2grid(elements.opoints, elements.otri, real(squeeze(H(cN,1,:))), x, y); 
+  %  singleHelmholtz(i,:,:) = tri2grid(elements.opoints, elements.otri, real(squeeze(H(cN,1,:))), x, y); 
    
-    sol(i,:,:) = tri2grid(elements.opoints, elements.otri, real(sum(U,1))', x, y);  
+  %  sol(i,:,:) = tri2grid(elements.opoints, elements.otri, real(sum(U,1))', x, y);  
 end
 
 %%
@@ -178,7 +187,94 @@ legend("l2 norm", "max")
 %% Next, we fix a certain error and increase the pressure and/or frequency
 % pressure to show when the system blows up, frequency to show the impact on the grid 
 
+clearvars
 
+fixedError = 10^-5; % L2 error of two consecutive iterations, we stop if we reach this
+
+massDensity = 1000; %kg/m^3
+
+% our domain
+bcenter = [0,0];
+brad = 0.05;
+domain = [bcenter, brad];
+% nonlinearity parameter of our domain (water = 5)
+sourceValueDomain = 5;
+
+% point scatterers and their domain
+values = [0];
+refractionIndex = [1];
+% linear case
+%values = [0, 0];
+radii = [0.05];
+centers = [0; 0];
+
+diffusivity = 10^(-9);
+
+minHarmonics = 10; % minimum number of harmonics
+nHarmonics = 40; % maximum number of harmonics
+
+gamma = 1;
+
+excitationPoints = [0;0];
+excitationSize = 0.01;
+% ultrasound pressure of the "point" source
+pressure = 10;
+
+% signal period or center frequency
+T = 10^-3;
+
+frequencySteps = 5;
+
+initialMeshSize = 0.005;
+
+% (power = 10, c = 50)
+speed_of_sound = [50];
+
+for j = 1:length(speed_of_sound)
+    j
+    for i = 1:frequencySteps
+        
+        beta = 1/speed_of_sound(j);
+        
+        omega = 2*pi* 1/T * i;
+        
+        meshSize(j,i) = initialMeshSize;
+        
+        while true      
+            [elements] = initializeMultiLeveLSolver(meshSize(j,i), domain);
+            %
+            f = constructF(elements, massDensity, speed_of_sound(j), refractionIndex, centers, radii, values, sourceValueDomain, true);
+    
+            % construct all space dependent wave numbers for all harmonics
+            kappa = constructKappa(elements, diffusivity, speed_of_sound(j), omega, refractionIndex, centers, radii, values, nHarmonics);
+    
+            % normalise the regularised dirac
+            pointSource = createPointSource(elements, excitationPoints, excitationSize);
+            [area, s] = integrate_fun_trimesh(elements.opoints, elements.otri, pointSource.');
+            source = -exp(1i*pi/2).*pressure.*pointSource./s;  
+            excitation = zeros(size(elements.points,1),nHarmonics);
+            excitation(:,1) = source;
+            numDOF(j,i) = size(elements.tri,1);
+            [cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, fixedError);
+            numIterations(j,i) = cN;
+            H = U;
+            U = squeeze(U(cN,:,:));
+            % compute the L^2 error
+            [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze(real(sum(H(cN,:,:)))) - squeeze(real(sum(H(cN-1,:,:))))).^2 )' );
+            % we could also check whether cN < maximum number of iterations
+            if sqrt(int) < fixedError
+                break;
+            end
+            % if we did not reach the error level increase the resolution
+            meshSize(j,i) = meshSize(i) / 2;
+        end
+        i
+    end
+    pressure = pressure * 2;
+  
+end
+
+%% same for higher speed of sound
 
 clearvars
 
@@ -203,55 +299,58 @@ centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 15; % minimum number of harmonics
-nHarmonics = 15; % maximum number of harmonics
+minHarmonics = 10; % minimum number of harmonics
+nHarmonics = 60; % maximum number of harmonics
 
-gamma = 10^(-9);
+gamma = 1;
 
 excitationPoints = [0;0];
+excitationSize = 0.01;
 % ultrasound pressure of the "point" source
-pressure = 10^4;
+pressure = 10^6;
 
 % signal period or center frequency
 T = 10^-3;
 
-frequencySteps = 10;
+frequencySteps = 5;
 
 initialMeshSize = 0.005;
 
-speed_of_sound = 50;
+% (power = 10, c = 50)
+speed_of_sound = [1450];
 
-SpeedOfSoundsSteps = 5;
-
-for j = 1:SpeedOfSoundsSteps
-
-    speed_of_sound = speed_of_sound * 2; % m/s
-  
+for j = 1:length(speed_of_sound)
+    j
     for i = 1:frequencySteps
         
-        beta = 1/speed_of_sound;
+        beta = 1/speed_of_sound(j);
         
-        omega = 2*pi* 1/T * i/2;
+        omega = 2*pi* 1/T * i;
         
         meshSize(j,i) = initialMeshSize;
         
         while true      
             [elements] = initializeMultiLeveLSolver(meshSize(j,i), domain);
             %
-            f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+            f = constructF(elements, massDensity, speed_of_sound(j), refractionIndex, centers, radii, values, sourceValueDomain, true);
     
             % construct all space dependent wave numbers for all harmonics
-            kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
+            kappa = constructKappa(elements, diffusivity, speed_of_sound(j), omega, refractionIndex, centers, radii, values, nHarmonics);
     
-            source = -exp(1i*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize(j,i));  
+            % normalise the regularised dirac
+            pointSource = createPointSource(elements, excitationPoints, excitationSize);
+            [area, s] = integrate_fun_trimesh(elements.opoints, elements.otri, pointSource.');
+            source = -exp(1i*pi/2).*pressure.*pointSource./s;  
             excitation = zeros(size(elements.points,1),nHarmonics);
             excitation(:,1) = source;
             numDOF(j,i) = size(elements.tri,1);
             [cN, U, F] =  solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, fixedError);
             H = U;
             U = squeeze(U(cN,:,:));
+            numIterations(j,i) = cN;
             % compute the L^2 error
             [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze(real(sum(H(cN,:,:)))) - squeeze(real(sum(H(cN-1,:,:))))).^2 )' );
+            % we could also check whether cN < maximum number of iterations
             if sqrt(int) < fixedError
                 break;
             end
@@ -261,7 +360,7 @@ for j = 1:SpeedOfSoundsSteps
         i
     end
     pressure = pressure * 2;
-    j
+  
 end
 %%
 
