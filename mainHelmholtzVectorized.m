@@ -28,8 +28,8 @@ elements.nodeIndex = elements.tri;
 % populate triangles, this is still needed... (not nice)
 elements.triangles = populateTriangles(elements);
 
- kappa = 40;
-    beta = 1;
+kappa = 40;
+beta = 1;
 
 f = @(x,y) realf(x,y,kappa*cos(pi/2),kappa*sin(pi/2), kappa);
 h = @(x,y) h_func_ex2(x,y);
@@ -37,6 +37,7 @@ g = @(x,y) origu(x,y,kappa*cos(pi/2),kappa*sin(pi/2));
 
 n = size(elements.points,1);
 innerpointsId = unique(elements.nodeIndex);
+
 fI = double(f(elements.points(innerpointsId,1),elements.points(innerpointsId,2)));
 for i=1:size(elements.bedges, 1)
     hI(elements.bedges(i,1)) = h(elements.points(elements.bedges(i,1), 1), elements.points(elements.bedges(i,1), 2));
@@ -48,8 +49,12 @@ t1 = toc;
 
 disp(['FEM Solver for the Helmholtz equation took: ', num2str(t1),'s']);
 
+% this just prepares the boundary
+hVec = zeros(n,1);
+hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
+
 tic
-U = solveHelmholtzVectorized(elements, kappa, beta, fI, hI, g, n);
+U = solveHelmholtzVectorized(elements, kappa, beta, fI, hVec);
 t2 = toc;
 
 disp(['Vectorized FEM Solver for the Helmholtz equation took: ' , num2str(t2),'s']);
@@ -147,8 +152,12 @@ for k = 1:length(kappas)
         
         %disp(['FEM Solver for the Helmholtz equation took: ', num2str(t1),'s']);
         
+        % this just prepares the boundary
+        hVec = zeros(n,1);
+        hVec(elements.bedges(:,1)) = hI(elements.bedges(:,1));
+
         tic
-        U = solveHelmholtzVectorized(elements, kappa, beta, fI, hI, g, n);
+        U = solveHelmholtzVectorized(elements, kappa, beta, fI, hI);
         t2 = toc;
         
         ctime(k,i,1) = t1;
