@@ -2,7 +2,7 @@
 clearvars
 
 massDensity = 1000; %kg/m^3
-speed_of_sound = 1480; % m/s
+speed_of_sound = 1450; % m/s
 
 % signal period or center frequency
 T = 10^-5;

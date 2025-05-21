@@ -5,7 +5,7 @@ clearvars
 
 massDensity = 1000; %kg/m^3
 speed_of_sound = 344; % m/s (reference in air)
-speed_of_sound_water = 1480; % m/s
+speed_of_sound_water = 1450; % m/s
 
 % signal period or center frequency
 T = 10^-4;
@@ -38,7 +38,7 @@ nHarmonics = 6; % maximum number of harmonics
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
 beta = 1/(speed_of_sound);
-gamma = 10^(-9);
+gamma = 1;
 
 meshSize = 0.002;
 %linArrayY = 0.0;
@@ -67,7 +67,7 @@ source = exp(1i.*pi/2).*pressure.*createPointSource(elements, excitationPoints, 
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_no_phantoms = squeeze(U(cN,:,:));
 
@@ -93,7 +93,7 @@ source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationP
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_one_phantom = squeeze(U(cN,:,:));
 
@@ -120,7 +120,7 @@ source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationP
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_phantom_two = squeeze(U(cN,:,:));
 
@@ -146,7 +146,7 @@ source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationP
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_phantom_three = squeeze(U(cN,:,:));
 
@@ -175,7 +175,7 @@ source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationP
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_two_phantoms = squeeze(U(cN,:,:));
 
@@ -200,7 +200,7 @@ source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationP
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
 
-[cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U_three_phantoms = squeeze(U(cN,:,:));
 
