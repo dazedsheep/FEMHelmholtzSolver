@@ -105,7 +105,7 @@ for i=1:N
     waitbar(i/N, waitbar_handle, sprintf('%d of %d iterations done (est. time left %f s).', i, N, elapsedTime*(N*N - i*i)))
    
 
-    if i > 1 && threshold > 0
+    if i > minHarmonics && threshold > 0
         % check if we should stop earlier due to reaching the minimal error
          
         [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze(real(sum(u(i,:,:)))) - squeeze(real(sum(u(i-1,:,:))))).^2 )' );
