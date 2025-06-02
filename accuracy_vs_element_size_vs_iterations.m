@@ -26,8 +26,6 @@ centers = [0; 0];
 
 diffusivity = 10^(-9);
 
-
-
 gamma = 1;
 
 beta = 1/speed_of_sound;
@@ -84,7 +82,7 @@ for i = 1:length(meshSizes)
         end
 
         U = squeeze(U(cN,:,:));
-        numDOF(i,j) = size(elements.tri,1);
+        numDOF(i,j) = size(elements.points,1);
         degen(i,j)= max(max(abs(f.* squeeze(abs(squeeze(real(sum(U(cN,:,:)))))))));
     end
 end
@@ -93,11 +91,13 @@ styles = {'--o','--+', '--*', '--x', '--square', '--diamond' };
 figure,
 t = tiledlayout(1,1);
 ax1 = axes(t);
+
 for j = 1:length(iters)
     plot(ax1,meshSizes,flip(runTime(:,j)), styles{j}, 'LineWidth',1.3,'MarkerSize',7);
     leg{j} = sprintf('N=%d iterations', iters(j));
     hold on
 end
+
 legend(leg, 'Interpreter','latex','Location','northwest');
 
 yscale("log")
@@ -110,15 +110,20 @@ ax2.Color = 'none';
 ax2.YScale = 'log';
 xlim (ax2,[numDOF(1,1),numDOF(10,1)]);
 ylim (ax2,[0,10^3])
-xlabel(ax2, 'Number of elements', 'Interpreter','latex')
+xlabel(ax2, 'DOF', 'Interpreter','latex')
 grid on; grid minor;
+%% tabular data for N=30
+meshSizes(2:2:end)'
+numDOF(2:2:end,6)
+numElements(2:2:end,6)-1
+%L2errors(1:2:end,6,29)
+runTime(2:2:end,6)
+%L2Norms(1:2:end,6,29)
+
 %%
 for i = 1:length(meshSizes)
-    for j=1:length(iters)
-        minHarmonics = iters(j); % minimum number of harmonics
-        nHarmonics = iters(j); % maximum number of harmonics
         meshSize = meshSizes(i);
         [elements] = initializeMultiLeveLSolver(meshSize, domain);
-        numNodes(i,j) = size(elements.points,1);
-    end
+        numNodes(i) = size(elements.points,1);
+        numElements(i) = size(elements.tri,1);
 end

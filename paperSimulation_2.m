@@ -40,7 +40,7 @@ nHarmonics = 6; % maximum number of harmonics
 beta = 1/(speed_of_sound);
 gamma = 1;
 
-meshSize = 0.002;
+meshSize = 0.0005;
 %linArrayY = 0.0;
 % build a linear array
 % excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
@@ -63,11 +63,13 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
 % we need to scale the reference pressure to the "point" source
-source = exp(1i.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
+source = exp(1i.*pi/2).*pressure.*createPointSource(elements, excitationPoints, 0.002);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
-
+%%
+tic
 [cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+calcTime = toc;
 H = U;
 U_no_phantoms = squeeze(U(cN,:,:));
 
@@ -75,7 +77,7 @@ P_no_phantoms = calcPressureProfile(omega, T, H, U_no_phantoms, cN);
 
 clear H
 
-
+%%
 % Phantom 1
 % point scatterers and their domain
 values = [5, 9];
@@ -92,8 +94,9 @@ kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionI
 source = exp(1i.*omega.*pi/2).*pressure.*createPointSource(elements, excitationPoints, meshSize);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
-
+tic
 [cN, U, F] = solveWesterveltMultiLevelMT(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+calcTime = toc;
 H = U;
 U_one_phantom = squeeze(U(cN,:,:));
 
@@ -275,7 +278,7 @@ figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryInd
 xlabel("x")
 ylabel("y")
 
-% scatter differnce plots
+% scatter difference plots
 figure, scatter3(elements.points(boundaryIndices,1), elements.points(boundaryIndices,2), boundaryValuesNoPhantoms - boundaryValuesOnePhantom, 'filled');
 xlabel("x")
 ylabel("y")
@@ -383,3 +386,7 @@ ylabel('y [m]')
 zlabel('Pa')
 view([-37.5 30])
 colormap('gray')
+%%
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), abs(source(:,1)), 'facecolor', 'interp'); shading interp
+xlim([-0.06,0.06])
+ylim([-0.05,0.05])
