@@ -2,65 +2,97 @@
 clearvars
 
 massDensity = 1000; %kg/m^3
-speed_of_sound = 1480; % m/s
+speed_of_sound = 1480;
 
 % signal period or center frequency of the excitation
 T = 10^-5;
-omega = 2*pi*1/T;
+
+% specify the coprime frequencies
+frequencies = 1/T + [0,911];
+
 
 % our domain
 bcenter = [0,0];
 brad = 0.2;
 domain = [bcenter, brad];
 % nonlinearity parameter of our domain (water = 5)
-sourceValueDomain = 5;
+sourceValueDomain = 0;
 
 % point scatterers and their domain
-values = [0];
-refractionIndex = [1, 1];
+values = [5];
+refractionIndex = [1, 1]; % this allows to adjust the speed of sound for the phantoms
 % linear case
 %values = [0, 0];
-radii = [0.25];
+radii = [0.05];
+% this is the diffusvity of the phantoms
+diffusivityPhantoms = [20]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0];
 
-diffusivity = 10^(-9);
+% this is the diffusivity for the domain
+diffusivity = 10^(-6);
 
-minHarmonics = 8; % minimum number of harmonics
-nHarmonics = 8; % maximum number of harmonics
+M = 4; % number of harmonics per frequency
+N = 4; % number of fundamental frequencies
+L = M*N;
 
-gamma = 10^(-9);
+% set up frequencies
+omega = zeros(M,N);
+for i = 1:M
+    for j=1:N
+        omega(i,j) = ((i-1)*frequencies(1) + (j-1)*frequencies(2));
+    end
+end
+
+% boundary paraemters
+
+% dirichlet part
+gamma = 1;
 
 beta = 1/speed_of_sound;
 
 meshSize = 0.0005;
 
 % put the excitation on the boundary
-excitationPoints = [0.0,0.0;-0.2,0.2];
+excitationPoints = [0.0,0.0]; % ;-0.2,0.2 ... second source
+%excitationPoints = [0.0,0.0];
 
 % ultrasound pressure of the "point" source
 pressure = 3*10^7;
-excitationPointsSize = [0.001;0.001];
+excitationPointsSize = [0.001];
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
-%%
-% construct non-linearity
-f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, radii, values, sourceValueDomain, true);
+%% prepare things for the nonlinear Westervelt solver
 
-% construct all space dependent wave numbers for all harmonics
-kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
+% stopped here! ---> TODO: prep matrices (check kappa), fix sources on
+% boundary, pray that the solver still works
 
-% realistically piezoelectric elements are not of infinitesimal small size
-source = exp(1i.*omega.*pi/2).*pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize, meshSize);  
-excitation = zeros(size(elements.points,1),nHarmonics);
-excitation(:,1) = source;
-excitation(:,2) = source;
+% construct non-linearity, \kappa(x)
+f = constructNonlinearity(elements, massDensity, centers, radii, values, sourceValueDomain, true);
+
+s = constructSquaredSpeedOfSound(elements, speed_of_sound);
+
+% construct all space dependent wave numbers for all frquencies
+% the space dependent diffusivity is taken care of in kappa (see the
+% Fourier formulation, i.e., the iteration scheme)
+kappa = constructKappaS(elements, [diffusivity diffusivityPhantoms], s, omega, refractionIndex, centers, radii, values, L,M,N);
+
+% realistic piezoelectric elements are not of infinitesimal small size
+source = pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize);  
+excitation = zeros(size(elements.points,1),L);
+
+excitation(:,2) = source; % first freq, first harmonic
+excitation(:,3) = source; % first freq, second harmonic
+excitation(:,10) = source; % mixed harmonic
+
+omegalin = omega(:);
 
 % solve the periodic westervelt equation with excitations on the boundary
-[cN, U, F] =  solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
+[cN, U, F] =  solveWesterveltMultiLevelBoundaryExcitationTwoFrequencies(elements, s, omegalin, beta, gamma, kappa, excitation, f, M, N, 10^(-12));
+%%
 H = U;
-U = squeeze(U(cN,:,:));
+U = squeeze(U(L,:,:));
 
-P_excitation_on_the_boundary = calcPressureProfile(omega, T, H, U, cN);
+P_excitation_on_the_boundary = calcPressureProfileTwoSources(omega, T, H, U, L);
 
 %% Compute the solution
 tind = 0:0.01:0.02;
