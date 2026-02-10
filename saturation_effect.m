@@ -58,7 +58,9 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 pressures = [5,7,9,11,12,14,15,16.2].*10^5;
 %%
-i = 6; % this configuration shows "saturation"
+idx = [2,5,6,7];
+for j = 1:length(idx)
+i = idx(j); % this configuration shows "saturation"
 
 % normalise the regularised dirac
 pointSource = createPointSource(elements, excitationPoints, excitationSize);
@@ -91,4 +93,24 @@ for k=1:cN
     L2norms_iteartions(i,k) = sqrt(int);
 end
 
-%%
+% calculate the L2 norms for each harmonic
+for k=1:cN
+    for h=1:nHarmonics
+        [~, int] = integrate_fun_trimesh(elements.points', elements.otri,  squeeze(abs(squeeze((U(k,h,:)))).^2).');
+        L2norms_iteartions(i,k,h) = sqrt(int);
+    end
+end
+end
+%% create energy plots
+for j = 1:length(idx)
+    i = idx(j);
+    k = 25;
+    arr(j,:) = L2norms_iteartions(i,k,:);
+end
+mkrs = {'o','x','+','*'};
+Gtype=[1 2 3 4];
+figure, plot(log10(arr.'))
+xlabel('Harmonic frequency (n)');
+ylabel('$||\widehat{p}_{n}||_{L^2(\Omega)}$', 'Interpreter','latex');
+legend('$ ||\hat{h}||_{L^2(\Omega)} = 7 \cdot 10^5$', '$||\hat{h}||_{L^2(\Omega)} = 12 \cdot 10^5$', '$||\hat{h}||_{L^2(\Omega)} = 14 \cdot 10^5$', '$||\hat{h}||_{L^2(\Omega)} = 15 \cdot 10^5$', 'Interpreter','latex');
+

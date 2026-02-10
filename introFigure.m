@@ -16,7 +16,7 @@ bcenter = [0,0];
 brad = 1;
 domain = [bcenter, brad];
 % non linearity parameter of our domain (water = 5)
-sourceValueDomain = 4;
+sourceValueDomain = 8;
 
 % point scatterers and their domain
 values = [0, 0];
@@ -28,24 +28,26 @@ centers = [0, 0; -0.3, 0.2];
 
 diffusivity = 10^(-9);
 
-minHarmonics = 22; % minimum number of harmonics
-nHarmonics = 22; % maximum number of harmonics
+minHarmonics = 4; % minimum number of harmonics
+nHarmonics = 4; % maximum number of harmonics
 
 % impdeance boundary conditions --> massDensity cancels
 % higher frequencies are taken into account later
 beta = 1/(speed_of_sound);
 gamma = 10^(-9);
 
-meshSize = 0.01;
-linArrayY = 0.8;
+meshSize = 0.005;
+
 % build a linear array
-excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;linArrayY,linArrayY,linArrayY,linArrayY,linArrayY];
+excitationPoints = [-2*lambda/8,-lambda/8,0,lambda/8,2*lambda/8;0.8,0.8,0.8,0.8,0.8];
+angles = exp(1i.*omega.*[-pi,-pi,0,pi,pi]);
 % typical ultrasound pressure is 1MPa at a frequency of 1 MHz, lower
 % frequency -> lower pressure!
-pressure = 1*10^6;
+pressure = 100*10^4;
 excitationPointsSize = [0.01,0.01,0.01,0.01,0.01];
 excitationPower(1,1) = pressure;
 excitationPower(1,2:nHarmonics) = 0;
+
 
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
@@ -61,22 +63,17 @@ f = constructF(elements, massDensity, speed_of_sound, refractionIndex, centers, 
 kappa = constructKappa(elements, diffusivity, speed_of_sound, omega, refractionIndex, centers, radii, values, nHarmonics);
 
 % build a gaussian source
-%source = pressure.*gaussianSource(elements, excitationPoints, 0.6);
+%source = 1./(speed_of_sound.^2 + 1i .* omega .* diffusivity).*referencePressure.*gaussianSource(elements, excitationPoints, 0.6);
 % build a point source (regularized dirac)
 
-% we need to scale the reference pressure to the "point" source
-source = pressure.*createPointSource(elements, excitationPoints, meshSize);  
-% angles = exp(1i.*omega.*[-pi,-pi,0,pi,pi]);
-% source = exp(1i.*pi).*pressure.*createPointSourceWithAngles(elements, excitationPoints, meshSize, angles);  
+% we need to scale the reference pressure to the "point" source/linear
+% array
+source = pressure.*createPointSourceWithAngles(elements, excitationPoints, meshSize, angles);  
 excitation = zeros(size(elements.points,1),nHarmonics);
 excitation(:,1) = source;
-
-%excitation = 1i./(speed_of_sound.^2 + 1i .* (1:nHarmonics) .* omega .* diffusivity).*excitation;
 [cN, U, F] = solveWesterveltMultiLevel(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, false, 10^(-12));
 H = U;
 U = squeeze(U(cN,:,:));
-
-
 %%
 % calc the solution(s) for the multi level harmonic approximation
 t_step = 1/(4/T);
@@ -197,3 +194,62 @@ hold on
 plot(pointdist(idxNonlinearity), smdata(idxNonlinearity),'r')
 xlabel('x');
 ylabel('Pa');
+
+%%
+% iso plot
+isoSol = squeeze(P(2,1,:));
+minVal = min(squeeze(P(2,1,:)));
+for i=1:size(elements.points,1)
+    if elements.points(i,1) < 0
+        isoSol(i) = minVal - 10;
+    end
+end
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), squeeze(isoSol), 'facecolor', 'interp'); shading interp;
+xlim([0.013802153928318 0.5]);
+ylim([-0.236500772088766 0.636500772088766]);
+set(gca,'color', [0.8 0.8 0.8]);
+view([-81.279637080005628 39.863542427228566]);
+zlim([-10000000 10538348.93793889])
+
+
+%% plot linear solution
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(squeeze(H(1,1,:))), 'facecolor', 'interp'); shading interp;
+xlim([0.013802153928318 0.5]);
+ylim([-0.236500772088766 0.636500772088766]);
+set(gca,'color', [0.8 0.8 0.8]);
+view([-81.279637080005628 39.863542427228566]);
+zlim([-10000000 10538348.93793889])
+%% plot solition in a single point
+
+% first the source at (0,0.8)
+maxValSource = max(real(source));
+t = linspace(0,4*T, 1000);
+figure, plot(t,maxValSource*cos(2*pi*1/T*t));
+
+% now the domain with some phantoms
+% plot the positions of excitation(s) and source(s)
+objects = getGridPointsLE(elements, [centers], [radii]);
+figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), objects, 'facecolor', 'interp'); shading interp;
+xlabel("x [m]");
+ylabel("y [m]");
+
+
+% now the response at one point of the border
+
+% get the boundary point nearest to (0,-1)^T
+
+boundaryPoint = getGridPointsLE(elements, [0;-1], [0]);
+
+solbP = U(:,boundaryPoint == 1);
+t = linspace(0,4*T,4000);
+
+% calc the solution(s) for the multi level harmonic approximation
+z = repmat(exp(-1i.*omega.*T.*tind)', 1, size(U,2));
+P = zeros(iter, size(z,1), size(z,2));
+o = 0;
+solAtbP = zeros(1,length(t));
+for k=1:4
+    solAtbP = solAtbP + solbP(k).*exp(1i.*k.*2.*pi.*1/T.*t);
+end
+solAtbP = real(solAtbP);
+figure, plot(t,solAtbP);
