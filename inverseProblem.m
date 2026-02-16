@@ -5,14 +5,23 @@ f1 = 10;    % 10 Hz
 f2 = 20;    % 20 Hz             
 omega1 = 2*pi*f1;     
 omega2 = 2*pi*f2;     
-u1 =  @(t,x,y) ((x.^2 + y.^2 + 1)*(cos(omega1 * t) + 2));
-u2 =  @(t,x,y) ((x.^2 + y.^2 + 1)*(cos(omega2 * t) + 2));
-u3 =  @(t,x,y) 2.*u1(t,x,y);
+
+u1 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
+u2 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
+u3 = @(t,x,y) 2 .* u1(t,x,y);
+
+u1grad = @(t,x,y) cat(3, ...
+    2 .* x .* (cos(omega1 .* t) + 2), ...
+    2 .* y .* (cos(omega1 .* t) + 2));
+u2grad = @(t,x,y) cat(3, ...
+    2 .* x .* (cos(omega2 .* t) + 2), ...
+    2 .* y .* (cos(omega2 .* t) + 2));
+u3grad = @(t,x,y) 2.* u1grad(t,x,y);
 
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
 
-% time domain (lowest frequency is determining the duration)
+% time domain (lowest frequency determines the duration)
 timeMesh = linspace(0,1/f1,100);
 
 % our domain
@@ -27,7 +36,6 @@ meshSize = 0.01;
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
 % specify the parameters we want to reconstruct
-
 % boundary parameters (not reconstructed)
 gamma = 1;
 
@@ -67,6 +75,16 @@ kappa = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N)
 excitationPoints = [0.0,0.0];
 pressure = 10000;
 excitationPointsSize = [0.001];
+
+%% prepare the source(s)
+sourceEdge = 1; % we impose the source on the boundary (negative quadrant)
+boundaryPointsSourceIdx = elements.edges((elements.edges(:,3) == sourceEdge),1);
+% compute the normals
+boundaryPointsSourceNormals = 1./sqrt(sum(elements.points(boundaryPointsSourceIdx,:).^2,2)).*elements.points(boundaryPointsSourceIdx,:); % our center is (0,0), so -> normalisation is suffices
+
+
+
+%%
 source = pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize);  
 excitations = zeros(size(elements.points,1), N, 3);
 excitations(:,1,1) = source;
@@ -85,5 +103,16 @@ u3 = calcSolution(elements, timeMesh, squeeze(U3(N,:,:)), omega1);
 
 %%
 % define \Sigma our measurement manifold/discrete points
+% the triangulation already defines the the edges of our doimain 1:4
+% (circle sectors)
+
+measurementEdge = 3; % positive quadrant edge
+
+% fetch the boundary points
+boundaryPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+
+measurement_u1 = u1(:,boundaryPointsIdx);
+measurement_u2 = u2(:,boundaryPointsIdx);
+measurement_u3 = u3(:,boundaryPointsIdx);
 
 
