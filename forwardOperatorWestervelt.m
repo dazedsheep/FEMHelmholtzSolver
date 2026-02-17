@@ -10,9 +10,9 @@ obs = u(:,observation);
 uh = (b.'.*u - eta.'.*u.^2);
 uh_t = (circshift(uh,-1,1) - uh)./timeMeshh;
 uh_tt = (circshift(uh_t,-1,1)- uh_t)./timeMeshh;
-
+u_t = (circshift(u,-1,1) - u)./timeMeshh;
 Deltau = (M\L * u.').';
-Deltau_t = (circshift(Deltau,-1,1) - Deltau)./timeMeshh;
+Deltau_t = (M\L * u_t.').';
 
 % only in \Omega
 fullboundaryIdx = elements.edges(:,1);
