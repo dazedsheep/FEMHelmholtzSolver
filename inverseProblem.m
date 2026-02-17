@@ -1,8 +1,8 @@
 clear all
 
 % specify our reference states
-f1 = 100;    % 10 Hz
-f2 = 200;    % 20 Hz             
+f1 = 1000;    % 10 Hz
+f2 = 2000;    % 20 Hz             
 omega1 = 2*pi*f1;     
 omega2 = 2*pi*f2;     
 
@@ -17,19 +17,11 @@ u1Fgrad = @(x,y) cat(3,...
     2 .* y);
 u1Cgrad = @(x,y) 2.*u1Fgrad(x,y);
 
-u1grad = @(t,x,y) cat(3, ...
-    2 .* x .* (cos(omega1 .* t) + 2), ...
-    2 .* y .* (cos(omega1 .* t) + 2));
-u2grad = @(t,x,y) cat(3, ...
-    2 .* x .* (cos(omega2 .* t) + 2), ...
-    2 .* y .* (cos(omega2 .* t) + 2));
-u3grad = @(t,x,y) 2.* u1grad(t,x,y);
-
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
-
+timeMeshh = 0.001;
 % time domain (lowest frequency determines the duration)
-timeMesh = linspace(0,1/f1,100);
+timeMesh = linspace(0,1/f1,1/timeMeshh);
 
 % our domain
 bcenter = [0,0];
@@ -102,8 +94,6 @@ sourceConstant = zeros(size(elements.points,1),1);
 sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1Cgrad(boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
 %%
-sourceFrequency = pressure.*sourceFrequency;  
-sourceConstant = pressure.*sourceConstant;
 excitations = zeros(size(elements.points,1), N, 3);
 excitations(:,1,1) = sourceConstant;
 excitations(:,2,1) = sourceFrequency;
@@ -118,9 +108,9 @@ excitations(:,2,3) = 2.*sourceFrequency;
 %%
 % compute the solutions on the time - space mesh
 
-u1 = calcSolution(elements, timeMesh, squeeze(U1(N,:,:)), omega1);
-u2 = calcSolution(elements, timeMesh, squeeze(U2(N,:,:)), omega2);
-u3 = calcSolution(elements, timeMesh, squeeze(U3(N,:,:)), omega1);
+u1s = calcSolution(elements, timeMesh, squeeze(U1(N,:,:)), omega1);
+u2s = calcSolution(elements, timeMesh, squeeze(U2(N,:,:)), omega2);
+u3s = calcSolution(elements, timeMesh, squeeze(U3(N,:,:)), omega1);
 
 %%
 % define \Sigma our measurement manifold/discrete points
@@ -130,10 +120,16 @@ u3 = calcSolution(elements, timeMesh, squeeze(U3(N,:,:)), omega1);
 measurementEdge = 3; % positive quadrant edge
 
 % fetch the boundary points
-boundaryPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
 
-measurement_u1 = u1(:,boundaryPointsIdx);
-measurement_u2 = u2(:,boundaryPointsIdx);
-measurement_u3 = u3(:,boundaryPointsIdx);
+measurement_u1 = u1s(:,measurementPointsIdx);
+measurement_u2 = u2s(:,measurementPointsIdx);
+measurement_u3 = u3s(:,measurementPointsIdx);
+%%
+% There is a bunch of things we can prepare beforehand computation
+L = cotmatrix(elements.points, elements.tri); % laplacian matrix (space)
+M = massmatrix(elements.points, elements.tri); % mass matrix (space)
 
+forwardOperatorWestervelt(elements, boundaryPointsSourceIdx,measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma)
+u1test = u1(timeMesh, elements.points(:,1), elements.points(:,2));
 
