@@ -1,4 +1,4 @@
-function [i, u, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, nHarmonics, minHarmonics, threshold)
+function [i, u, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, b, nHarmonics, minHarmonics, threshold)
 
 n = size(elements.points,1);
 N = nHarmonics;
@@ -97,7 +97,7 @@ for i=1:N
 
         end
 
-        F(j+1,:) = -j^2.*kappa(:,j+1).^2.*1/2.*f.*p_m.';
+        F(j+1,:) = -j^2.*kappa(:,j+1).^2.*1./(2.*b).*f.*p_m.';
 
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j+1), beta, F(j+1,:).', excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
 

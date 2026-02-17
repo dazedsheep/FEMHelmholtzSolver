@@ -74,7 +74,6 @@ kappa = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N)
 excitationPoints = [0.0,0.0];
 pressure = 10000;
 excitationPointsSize = [0.001];
-excitations = zeros(size(elements.points,1), N, 3);
 
 %% prepare the source(s)
 sourceEdge = 1; % we impose the source on the boundary (negative quadrant)
@@ -102,9 +101,9 @@ excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappa(:,:,1)), squeeze(excitations(:,:,1)), eta, N, N, 10^(-12));
-[cN, U2, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappa(:,:,2)), squeeze(excitations(:,:,2)), eta, N, N, 10^(-12));
-[cN, U3, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappa(:,:,3)), squeeze(excitations(:,:,3)), eta, N, N, 10^(-12));
+[cN, U1, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappa(:,:,1)), squeeze(excitations(:,:,1)), eta, b, N, N, 10^(-12));
+[cN, U2, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappa(:,:,2)), squeeze(excitations(:,:,2)), eta, b, N, N, 10^(-12));
+[cN, U3, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappa(:,:,3)), squeeze(excitations(:,:,3)), eta, b, N, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 
