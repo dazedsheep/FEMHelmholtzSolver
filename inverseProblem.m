@@ -1,14 +1,21 @@
 clear all
 
 % specify our reference states
-f1 = 10;    % 10 Hz
-f2 = 20;    % 20 Hz             
+f1 = 100;    % 10 Hz
+f2 = 200;    % 20 Hz             
 omega1 = 2*pi*f1;     
 omega2 = 2*pi*f2;     
 
 u1 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) 2 .* u1(t,x,y);
+
+u1F = @(x,y) (x.^2 + y.^2 + 1); 
+u1C = @(x,y) (x.^2 + y.^2 + 1) .* 2;
+u1Fgrad = @(x,y) cat(3,...
+    2 .* x, ...
+    2 .* y);
+u1Cgrad = @(x,y) 2.*u1Fgrad(x,y);
 
 u1grad = @(t,x,y) cat(3, ...
     2 .* x .* (cos(omega1 .* t) + 2), ...
@@ -53,7 +60,7 @@ massDensity = 1000; %kg/m^3
 
 speed_of_sound = 1480;
 
-N = 5; % number of harmonics we will compute
+N = 10; % number of harmonics we will compute
 
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
@@ -75,21 +82,35 @@ kappa = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N)
 excitationPoints = [0.0,0.0];
 pressure = 10000;
 excitationPointsSize = [0.001];
+excitations = zeros(size(elements.points,1), N, 3);
 
 %% prepare the source(s)
 sourceEdge = 1; % we impose the source on the boundary (negative quadrant)
 boundaryPointsSourceIdx = elements.edges((elements.edges(:,3) == sourceEdge),1);
+
+boundaryPointsSource = elements.points(boundaryPointsSourceIdx,:);
+
 % compute the normals
 boundaryPointsSourceNormals = 1./sqrt(sum(elements.points(boundaryPointsSourceIdx,:).^2,2)).*elements.points(boundaryPointsSourceIdx,:); % our center is (0,0), so -> normalisation is suffices
 
+% frequency part (robin boundary)
+sourceFrequency = zeros(size(elements.points,1),1);
+sourceFrequency(boundaryPointsSourceIdx) = gamma.*u1F(boundaryPointsSource(:,1),boundaryPointsSource(:,2)) + dot(squeeze(u1Fgrad(boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
+% constant part (robin boundary)
+sourceConstant = zeros(size(elements.points,1),1);
+sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1Cgrad(boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
 %%
-source = pressure.*createPointSourceOnBoundary(elements, excitationPoints, excitationPointsSize);  
+sourceFrequency = pressure.*sourceFrequency;  
+sourceConstant = pressure.*sourceConstant;
 excitations = zeros(size(elements.points,1), N, 3);
-excitations(:,1,1) = source;
-excitations(:,1,2) = source;
-excitations(:,1,3) = 2*source;
+excitations(:,1,1) = sourceConstant;
+excitations(:,2,1) = sourceFrequency;
+excitations(:,1,2) = sourceConstant;
+excitations(:,2,2) = sourceFrequency;
+excitations(:,1,3) = 2.*sourceConstant;
+excitations(:,2,3) = 2.*sourceFrequency;
 %%
 [cN, U1, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappa(:,:,1)), squeeze(excitations(:,:,1)), eta, N, N, 10^(-12));
 [cN, U2, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappa(:,:,2)), squeeze(excitations(:,:,2)), eta, N, N, 10^(-12));

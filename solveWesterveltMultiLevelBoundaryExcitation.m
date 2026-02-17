@@ -69,7 +69,7 @@ handleWaitbar = waitbar(0, waitbar_handle, sprintf('%d of %d iterations done.', 
 F = zeros(N, n);
 elapsedTime = -1;
 for i=1:N    
-    for j=1:i
+    for j=0:(i-1)
         if i==2 && j==2
             tic
         end
@@ -83,9 +83,9 @@ for i=1:N
             p_m = p_m + 2.*squeeze(sum(conj(u(i-1,(((j+2):2:(2*i-j))-j)/2,:)).*u(i-1,(((j+2):2:(2*i-j))+j)/2,:),2)).';
         end
 
-        F(j,:) = j^2.*kappa(:,j).^2.*(- 1/2.*f.*p_m.');
+        F(j+1,:) = j^2.*kappa(:,j+1).^2.*(- 1/2.*f.*p_m.');
 
-        u(i,j,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j), beta, F(j,:).', excitation(:,j), n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j+1), beta, F(j+1,:).', excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
 
         if i==2 && j==2
             elapsedTime = toc;

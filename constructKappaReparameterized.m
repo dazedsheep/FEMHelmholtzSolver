@@ -6,7 +6,7 @@ function  [kappa] = constructKappaReparameterized(elements, s, b, omega, N)
 kappa = zeros(size(elements.points,1), N, size(omega,2));
 for i = 1:size(omega,2)
     for j = 2:(N)
-        kappa(:,j) = omega(i)./sqrt(s + 1i.*j.*omega(i).*b);
+        kappa(:,j) = omega(i)./sqrt(s + 1i.*(j-1).*omega(i).*b);
     end
 end
 
