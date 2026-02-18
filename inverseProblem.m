@@ -55,7 +55,7 @@ beta = 0;   % this is important check paper for clarification
 diffusivity = 0.5;
 values = [5]; % B/A of phantoms
 radii = [0.05];
-diffusivityPhantoms = [5]; % this allows to adjust the diffusivity for the phantoms
+diffusivityPhantoms = [1]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0];
 
 massDensity = 1000; %kg/m^3
@@ -68,9 +68,8 @@ N = 10; % number of harmonics-1 we will compute
 sourceValueDomain = 2; % B/A of domain
 
 eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
-
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
-
+eta = 0;
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
 
 % the complex wavenumber, here we compute the square wave number 
@@ -101,16 +100,16 @@ sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), 
 
 %%
 excitations = zeros(size(elements.points,1), N, 3);
-excitations(:,1,1) = sourceConstant;
+excitations(:,1,1) = 0;
 excitations(:,2,1) = sourceFrequency;
 excitations(:,1,2) = sourceConstant;
 excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 15, N, 10^(-12));
-[cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 15, N, 10^(-12));
-[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 15, N, 10^(-12));
+[cN, U1, F1, K] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta,s, b, 15, N, 10^(-12));
+[cN, U2, F2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta,s, b, 15, N, 10^(-12));
+[cN, U3, F3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta,s, b, 15, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 
@@ -136,7 +135,64 @@ measurement_u3 = u3s(:,measurementPointsIdx);
 L = cotmatrix(elements.points, elements.tri); % laplacian matrix (space)
 M = massmatrix(elements.points, elements.tri); % mass matrix (space)
 
-[modDomain, modBoundary, obs] = forwardOperatorWestervelt(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma);
+% pre compoute the gradient operator
+p = elements.points;
+t = elements.tri(:,1:3);
+
+x = p(:,1);
+y = p(:,2);
+
+nt = size(t,1);
+np = size(p,1);
+
+% triangle vertex indices
+i1 = t(:,1); i2 = t(:,2); i3 = t(:,3);
+
+% coordinates
+x1 = x(i1); y1 = y(i1);
+x2 = x(i2); y2 = y(i2);
+x3 = x(i3); y3 = y(i3);
+
+% triangle areas
+area = 0.5*((x2-x1).*(y3-y1)-(x3-x1).*(y2-y1));
+
+% gradients of basis functions
+b1 = (y2-y3)./(2*area);
+b2 = (y3-y1)./(2*area);
+b3 = (y1-y2)./(2*area);
+
+c1 = (x3-x2)./(2*area);
+c2 = (x1-x3)./(2*area);
+c3 = (x2-x1)./(2*area);
+
+% assemble sparse gradient matrices
+rows = repmat((1:nt)',1,3);
+
+Gx_elem = sparse(rows(:), t(:), [b1;b2;b3], nt, np);
+Gy_elem = sparse(rows(:), t(:), [c1;c2;c3], nt, np);
+
+% average to nodes (mass lumping style)
+Mmap = sparse(repmat((1:nt)',3,1), t(:), 1, nt, np);
+weights = Mmap' * abs(area);
+
+Gx = (Mmap' * (abs(area).*Gx_elem)) ./ weights;
+Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
+
+[modDomain, modBoundary, obs] = forwardOperatorWestervelt(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
 
 %testu1boundary = zeros(1,size(u2s,2));
 % testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).', boundaryPointsSourceNormals.').';
+% this is the check for the scaled version:
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(-squeeze(kappasq(:,2,1)).*squeeze(U1(N,2,:)) - M\L * squeeze(U1(N,2,:))), 'facecolor', 'interp'); shading interp;
+% this is the check for the unscaled version:
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(-squeeze(-b.*squeeze(U1(N,2,:))) - (s + 1i .*1.*omega1) .* M\L * squeeze(U1(N,2,:))), 'facecolor', 'interp'); shading interp;
+
+%%
+bn = elements.boundaryIdx;
+Ux = (Gx * squeeze(U1(N,2,:))).';  % N x 1
+Uy = (Gy * squeeze(U1(N,2,:))).';
+normal_x = elements.boundaryNormals(:,1);
+normal_y = elements.boundaryNormals(:,2);
+gradNormal =  (Ux(bn).' .* normal_x + Uy(bn).' .* normal_y);
+excitationCheck = zeros(size(elements.points,1),1);
+excitationCheck(bn) = gamma*squeeze(U1(N,2,bn)) + gradNormal;
