@@ -1,10 +1,9 @@
-function [i, u, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, b, nHarmonics, minHarmonics, threshold)
+function [i, u, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, b, nIterations, nHarmonics, threshold)
 
 n = size(elements.points,1);
-N = nHarmonics;
+N = nIterations;
 h = zeros(n,1);
 
-waitbar_handle = waitbar(0,'Initializing waitbar...');
 
 u = zeros(N,N,n);
 
@@ -64,18 +63,10 @@ bcol = elements.bedges(:,[1 1 2 2]).';
 
 % sparse boundary mass matrix
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
-
-handleWaitbar = waitbar(0, waitbar_handle, sprintf('%d of %d iterations done.', 0, N));
 F = zeros(N, n);
-elapsedTime = -1;
 for i=1:N
-    for j=0:(i-1)
-        if i==2 && j==2
-            tic
-        end
-
+    for j=0:min((i-1),nHarmonics-1)
         p_m = zeros(1,n);
-
         % the first iteration has just the excitation on the right hand side
         % index 1 is the zero-th solution
         if i>1 && j>0
@@ -89,7 +80,7 @@ for i=1:N
 
             % ---------- Second sum ----------
             % 2 * sum_{r=0}^{N-1-j} conj(u_r) * u_{r+j}
-            for r = 0:(i-1-j)
+            for r = 0:((N-1)-j)
                 p_m = p_m + 2 * ...
                     conj(squeeze(u(i-1,r+1,:)).') .* ...
                     squeeze(u(i-1,(r+j)+1,:)).';
@@ -97,25 +88,13 @@ for i=1:N
 
         end
 
-        F(j+1,:) = -j^2.*kappa(:,j+1).^2.*1./(2.*b).*f.*p_m.';
+        F(j+1,:) = -j^2.*kappa(:,j+1).*1./(2.*b).*f.*p_m.';
 
-        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j*kappa(:,j+1), beta, F(j+1,:).', excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*kappa(:,j+1), beta, F(j+1,:).', excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
 
-        if i==2 && j==2
-            elapsedTime = toc;
-        end
     end
 
-    waitbar(i/N, waitbar_handle, sprintf('%d of %d iterations done (est. time left %f s).', i, N, elapsedTime*(N*N - i*j)))
-
-    if i > minHarmonics
-        if sum(abs(u(i-1,minHarmonics,:) - u(i,minHarmonics,:))) < threshold
-            waitbar(i/N, waitbar_handle, sprintf('Threshold reached in the %d-th harmonic.', minHarmonics))
-            break
-        end
-    end
 end
 
-close(handleWaitbar);
 
 end
