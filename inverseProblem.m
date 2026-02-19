@@ -52,7 +52,7 @@ beta = 0;   % this is important check paper for clarification
 
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
-diffusivity = 0.5;
+diffusivity = 0.0005;
 values = [5]; % B/A of phantoms
 radii = [0.05];
 diffusivityPhantoms = [1]; % this allows to adjust the diffusivity for the phantoms
@@ -60,7 +60,7 @@ centers = [0; 0];
 
 massDensity = 1000; %kg/m^3
 
-speed_of_sound = 1;
+speed_of_sound = 2;
 
 N = 3; % number of harmonics-1 we will compute
 
@@ -178,7 +178,7 @@ weights = Mmap' * abs(area);
 Gx = (Mmap' * (abs(area).*Gx_elem)) ./ weights;
 Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 
-%[modDomain, modBoundary, obs] = forwardOperatorWestervelt(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
+[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
 
 %testu1boundary = zeros(1,size(u2s,2));
 % testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).', boundaryPointsSourceNormals.').';
@@ -189,7 +189,7 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 
 %% sanity check
 bn = elements.boundaryIdx;
-harmonicIdx = 1;
+harmonicIdx = 2;
 Ux = (Gx * squeeze(U1(N,harmonicIdx,:))).';  % N x 1
 Uy = (Gy * squeeze(U1(N,harmonicIdx,:))).';
 normal_x = elements.boundaryNormals(:,1);
@@ -199,6 +199,14 @@ excitationCheck = zeros(size(elements.points,1),1);
 excitationCheck(bn) = gamma*squeeze(U1(N,harmonicIdx,bn)) + gradNormal;
 % check the domain residual, expect the biggest error on the boundary
 domresidual = squeeze(-Mass*kappasq(:,harmonicIdx,1)).*squeeze(U1(N,harmonicIdx,:)) + (S * squeeze(U1(N,harmonicIdx,:))) + MassB * squeeze(U1(N,harmonicIdx,:)) - Mass * F1(harmonicIdx,:).';
-%% all at once forwrad operator (harmonics)
+u1boundary(elements.boundaryIdx) = gamma.*u1(0,boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
+%% residual test of forward operator
+u0 = zeros(size(timeMesh,2), size(elements.points,1));
+for i=1:size(timeMesh,2)
+    u0(i,:) = u1(timeMesh(i),elements.points(:,1), elements.points(:,2));
+end
 
-F = forward_all_at_once(squeeze(U1(N,:,:)).', s, b, eta, Mass, S, MassB, Gx, Gy, elements.boundaryNormals(:,1), elements.boundaryNormals(:,2), omega1, gamma, measurementPointsIdx, elements.boundaryIdx);
+[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u0, eta, b, s, gamma, Gx, Gy);
+
+[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
+
