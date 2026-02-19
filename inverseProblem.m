@@ -31,7 +31,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.005;
+meshSize = 0.001;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -62,14 +62,14 @@ massDensity = 1000; %kg/m^3
 
 speed_of_sound = 1;
 
-N = 10; % number of harmonics-1 we will compute
+N = 3; % number of harmonics-1 we will compute
 
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
 
 eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
-eta = 0;
+
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
 
 % the complex wavenumber, here we compute the square wave number 
@@ -100,16 +100,16 @@ sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), 
 
 %%
 excitations = zeros(size(elements.points,1), N, 3);
-excitations(:,1,1) = 0;
+excitations(:,1,1) = sourceConstant;
 excitations(:,2,1) = sourceFrequency;
 excitations(:,1,2) = sourceConstant;
 excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F1, K] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta,s, b, 15, N, 10^(-12));
-[cN, U2, F2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta,s, b, 15, N, 10^(-12));
-[cN, U3, F3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta,s, b, 15, N, 10^(-12));
+[cN, U1, F1, S, Mass, MassB] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
+[cN, U2, F2, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 5, N, 10^(-12));
+[cN, U3, F3, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 5, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 
@@ -178,7 +178,7 @@ weights = Mmap' * abs(area);
 Gx = (Mmap' * (abs(area).*Gx_elem)) ./ weights;
 Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 
-[modDomain, modBoundary, obs] = forwardOperatorWestervelt(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
+%[modDomain, modBoundary, obs] = forwardOperatorWestervelt(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
 
 %testu1boundary = zeros(1,size(u2s,2));
 % testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).', boundaryPointsSourceNormals.').';
@@ -187,12 +187,18 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 % this is the check for the unscaled version:
 %figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(-squeeze(-b.*squeeze(U1(N,2,:))) - (s + 1i .*1.*omega1) .* M\L * squeeze(U1(N,2,:))), 'facecolor', 'interp'); shading interp;
 
-%%
+%% sanity check
 bn = elements.boundaryIdx;
-Ux = (Gx * squeeze(U1(N,2,:))).';  % N x 1
-Uy = (Gy * squeeze(U1(N,2,:))).';
+harmonicIdx = 1;
+Ux = (Gx * squeeze(U1(N,harmonicIdx,:))).';  % N x 1
+Uy = (Gy * squeeze(U1(N,harmonicIdx,:))).';
 normal_x = elements.boundaryNormals(:,1);
 normal_y = elements.boundaryNormals(:,2);
 gradNormal =  (Ux(bn).' .* normal_x + Uy(bn).' .* normal_y);
 excitationCheck = zeros(size(elements.points,1),1);
-excitationCheck(bn) = gamma*squeeze(U1(N,2,bn)) + gradNormal;
+excitationCheck(bn) = gamma*squeeze(U1(N,harmonicIdx,bn)) + gradNormal;
+% check the domain residual, expect the biggest error on the boundary
+domresidual = squeeze(-Mass*kappasq(:,harmonicIdx,1)).*squeeze(U1(N,harmonicIdx,:)) + (S * squeeze(U1(N,harmonicIdx,:))) + MassB * squeeze(U1(N,harmonicIdx,:)) - Mass * F1(harmonicIdx,:).';
+%% all at once forwrad operator (harmonics)
+
+F = forward_all_at_once(squeeze(U1(N,:,:)).', s, b, eta, Mass, S, MassB, Gx, Gy, elements.boundaryNormals(:,1), elements.boundaryNormals(:,2), omega1, gamma, measurementPointsIdx, elements.boundaryIdx);

@@ -10,7 +10,7 @@ for j=1:size(centers,2)
     if(radii(j) == 0)
         % this is a point source
         % find nearest node to impose our point source
-        [v,pcenterIdx] = min(sum((elements.points - centers(:,j)').^2,2)); 
+        [~,pcenterIdx] = min(sum((elements.points - centers(:,j)').^2,2)); 
         s(pcenterIdx) =  speed_of_sound.^2./diffusivityPhantoms(j);
     else
         % this is a "disc" source

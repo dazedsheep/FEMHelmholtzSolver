@@ -1,4 +1,4 @@
-function [i, u, F] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, b, nIterations, nHarmonics, threshold)
+function [i, u, F, K_g, M_g, tBM] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, kappa, excitation, f, b, nIterations, nHarmonics, threshold)
 
 n = size(elements.points,1);
 N = nIterations;
@@ -63,6 +63,10 @@ bcol = elements.bedges(:,[1 1 2 2]).';
 
 % sparse boundary mass matrix
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
+
+K_g = sparse(rowK, colK, K(:), n, n);
+M_g = sparse(rowK, colK, M_t(:), n, n);
+
 F = zeros(N, n);
 for i=1:N
     for j=0:min((i-1),nHarmonics-1)

@@ -1,7 +1,7 @@
 function [U] = solveHelmholtzCondensedC(elements, omega, gamma, kappa, beta, f, hI, n, K, rowK, colK, M_t, tBM)
 
 hVec = hI;
-KappaSq = repmat(kappa(elements.nodeIndex),1,3,1).';
+KappaSq = repmat(mean(kappa(elements.nodeIndex),2),1,9,1).';
 MC = M_t .* KappaSq;
 
 Z_t = reshape(K, 9, size(K,3)) - MC;
