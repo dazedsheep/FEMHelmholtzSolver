@@ -52,10 +52,10 @@ beta = 0;   % this is important check paper for clarification
 
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
-diffusivity = 0.0005;
+diffusivity = 0.005;
 values = [5]; % B/A of phantoms
 radii = [0.05];
-diffusivityPhantoms = [1]; % this allows to adjust the diffusivity for the phantoms
+diffusivityPhantoms = [20]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0];
 
 massDensity = 1000; %kg/m^3
@@ -178,8 +178,6 @@ weights = Mmap' * abs(area);
 Gx = (Mmap' * (abs(area).*Gx_elem)) ./ weights;
 Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 
-[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
-
 %testu1boundary = zeros(1,size(u2s,2));
 % testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).', boundaryPointsSourceNormals.').';
 % this is the check for the scaled version:
@@ -206,7 +204,7 @@ for i=1:size(timeMesh,2)
     u0(i,:) = u1(timeMesh(i),elements.points(:,1), elements.points(:,2));
 end
 
-[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u0, eta, b, s, gamma, Gx, Gy);
+[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, S, Mass, u0, eta, b, s, gamma, Gx, Gy);
 
-[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
+[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, S, Mass, u1s, eta, b, s, gamma, Gx, Gy);
 
