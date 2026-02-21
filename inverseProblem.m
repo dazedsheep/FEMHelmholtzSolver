@@ -23,7 +23,9 @@ u1Cgrad = @(x,y) 2.*u1Fgrad(x,y);
 % and the mesh in time
 timeMeshh = 0.01;
 % time domain (lowest frequency determines the duration)
-timeMesh = linspace(0,1/f1,1/timeMeshh);
+timeMesh = linspace(0,1/f1,1/timeMeshh - 1);
+% recompute time difference
+timeMeshh = timeMesh(2) - timeMesh(1); % careful this is the time diff!
 
 % our domain
 bcenter = [0,0];
@@ -62,7 +64,7 @@ massDensity = 1000; %kg/m^3
 
 speed_of_sound = 2;
 
-N = 3; % number of harmonics-1 we will compute
+N = 5; % number of harmonics-1 we will compute
 
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
@@ -107,7 +109,7 @@ excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F1, S, Mass, MassB] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
+[cN, U1, F1, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
 [cN, U2, F2, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 5, N, 10^(-12));
 [cN, U3, F3, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 5, N, 10^(-12));
 %%
@@ -132,7 +134,7 @@ measurement_u2 = u2s(:,measurementPointsIdx);
 measurement_u3 = u3s(:,measurementPointsIdx);
 %%
 % There is a bunch of things we can prepare beforehand computation
-L = cotmatrix(elements.points, elements.tri); % laplacian matrix (space)
+L = cotmatrix(elements.points, elements.tri); % laplacian matrix (space) [stiffnes matrix]
 M = massmatrix(elements.points, elements.tri); % mass matrix (space)
 
 % pre compoute the gradient operator
@@ -186,25 +188,125 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 %figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), real(-squeeze(-b.*squeeze(U1(N,2,:))) - (s + 1i .*1.*omega1) .* M\L * squeeze(U1(N,2,:))), 'facecolor', 'interp'); shading interp;
 
 %% sanity check
-bn = elements.boundaryIdx;
-harmonicIdx = 2;
-Ux = (Gx * squeeze(U1(N,harmonicIdx,:))).';  % N x 1
-Uy = (Gy * squeeze(U1(N,harmonicIdx,:))).';
-normal_x = elements.boundaryNormals(:,1);
-normal_y = elements.boundaryNormals(:,2);
-gradNormal =  (Ux(bn).' .* normal_x + Uy(bn).' .* normal_y);
-excitationCheck = zeros(size(elements.points,1),1);
-excitationCheck(bn) = gamma*squeeze(U1(N,harmonicIdx,bn)) + gradNormal;
-% check the domain residual, expect the biggest error on the boundary
-domresidual = squeeze(-Mass*kappasq(:,harmonicIdx,1)).*squeeze(U1(N,harmonicIdx,:)) + (S * squeeze(U1(N,harmonicIdx,:))) + MassB * squeeze(U1(N,harmonicIdx,:)) - Mass * F1(harmonicIdx,:).';
-u1boundary(elements.boundaryIdx) = gamma.*u1(0,boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
+% bn = elements.boundaryIdx;
+% harmonicIdx = 2;
+% Ux = (Gx * squeeze(U1(N,harmonicIdx,:))).';  % N x 1
+% Uy = (Gy * squeeze(U1(N,harmonicIdx,:))).';
+% normal_x = elements.boundaryNormals(:,1);
+% normal_y = elements.boundaryNormals(:,2);
+% gradNormal =  (Ux(bn).' .* normal_x + Uy(bn).' .* normal_y);
+% excitationCheck = zeros(size(elements.points,1),1);
+% excitationCheck(bn) = gamma*squeeze(U1(N,harmonicIdx,bn)) + gradNormal;
+% % check the domain residual, expect the biggest error on the boundary
+% domresidual = squeeze(-Mass*kappasq(:,harmonicIdx,1)).*squeeze(U1(N,harmonicIdx,:)) + (S * squeeze(U1(N,harmonicIdx,:))) + MassB * squeeze(U1(N,harmonicIdx,:)) - Mass * F1(harmonicIdx,:).';
+% u1boundary(elements.boundaryIdx) = gamma.*u1(0,boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 %% residual test of forward operator
 u0 = zeros(size(timeMesh,2), size(elements.points,1));
+F = @(t,x,y) ...
+    - b .* omega1.^2 .* (x.^2 + y.^2 + 1) .* cos(omega1 .* t) ...
+    - 2 .* eta .* omega1.^2 .* (x.^2 + y.^2 + 1).^2 .* ...
+      (1 - 2 .* cos(omega1 .* t).^2 - 2 .* cos(omega1 .* t)) ...
+    - 4 .* s .* (cos(omega1 .* t) + 2) ...
+    + 4 .* omega1 .* sin(omega1 .* t);
+Fu  = @(t,x,y) ...
+   omega1.^2.*(x.^2 + y.^2 + 1).*(cos(omega1.*t).*(4.*eta.*(x.^2 + y.^2 + 1) - b) + 2.*eta.*(x.^2 + y.^2 + 1).* cos(2.*t.*omega1));
+
+Flapu = @(t,x,y) (- 4 .* s .* (cos(omega1 .* t) + 2));
+Flaput = @(t,x,y) (+ 4 .* omega1 .* sin(omega1 .* t));
+
+
+analyticModDomain = zeros(size(timeMesh,2), size(elements.points,1));
+
 for i=1:size(timeMesh,2)
     u0(i,:) = u1(timeMesh(i),elements.points(:,1), elements.points(:,2));
+    uh(i,:) = (b.*u1(timeMesh(i),elements.points(:,1), elements.points(:,2)) - eta.*(u1(timeMesh(i),elements.points(:,1), elements.points(:,2)).^2) );
+    auh(i,:) = Fu(timeMesh(i),elements.points(:,1), elements.points(:,2));
+    alapu(i,:) = Flapu(timeMesh(i),elements.points(:,1), elements.points(:,2));
+    alaput(i,:) = Flaput(timeMesh(i),elements.points(:,1), elements.points(:,2));
+    analyticModDomain(i,:) = F(timeMesh(i),elements.points(:,1), elements.points(:,2));
 end
 
-[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, S, Mass, u0, eta, b, s, gamma, Gx, Gy);
+%%
+% ---------------------------------------------------------
+% Parameters
+% ---------------------------------------------------------
+R      = 0.2;
 
-[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, S, Mass, u1s, eta, b, s, gamma, Gx, Gy);
+Nx = 201;          % spatial resolution
+Nt = length(timeMesh);
+% ---------------------------------------------------------
+% Spatial grid
+% ---------------------------------------------------------
+x = linspace(-R,R,Nx);
+y = linspace(-R,R,Nx);
+[X,Y] = meshgrid(x,y);
+
+h = x(2) - x(1);
+
+mask = (X.^2 + Y.^2) <= R^2;
+
+% ---------------------------------------------------------
+% Allocate space-time array
+% u is Nx x Nx x Nt
+% ---------------------------------------------------------
+u = zeros(Nx,Nx,Nt);
+A = X.^2 + Y.^2 + 1;
+
+% ---------------------------------------------------------
+% Evaluate u on space-time mesh
+% ---------------------------------------------------------
+for k = 1:Nt
+    u(:,:,k) = A .* (cos(omega1*timeMesh(k)) + 2);
+end
+
+% ---------------------------------------------------------
+% Compute Laplacian for each time
+% ---------------------------------------------------------
+Lap_u = zeros(size(u));
+
+for k = 1:Nt
+    
+    uk = u(:,:,k);
+    
+    uxx = zeros(Nx,Nx);
+    uyy = zeros(Nx,Nx);
+    
+    % central differences
+    uxx(:,2:end-1) = (uk(:,3:end) - 2*uk(:,2:end-1) + uk(:,1:end-2)) / h^2;
+    uyy(2:end-1,:) = (uk(3:end,:) - 2*uk(2:end-1,:) + uk(1:end-2,:)) / h^2;
+    
+    Lap_u(:,:,k) = uxx + uyy;
+end
+
+% Apply disk mask
+for k = 1:Nt
+    tmp = Lap_u(:,:,k);
+    tmp(~mask) = NaN;
+    Lap_u(:,:,k) = tmp;
+end
+
+% ---------------------------------------------------------
+% Exact Laplacian (for verification)
+% ---------------------------------------------------------
+Lap_exact = zeros(size(u));
+
+for k = 1:Nt
+    Lap_exact(:,:,k) = 4*(cos(omega1*timeMesh(k))+2);
+end
+
+Lap_exact(~repmat(mask,1,1,Nt)) = NaN;
+
+% ---------------------------------------------------------
+% Error
+% ---------------------------------------------------------
+err = max(abs(Lap_u(:) - Lap_exact(:)),[],'omitnan');
+fprintf('Max space-time Laplacian error: %.3e\n',err);
+
+
+%%
+%  
+
+[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u0, eta, b, s, gamma, Gx, Gy);
+
+[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
 
