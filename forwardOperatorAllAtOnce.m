@@ -8,9 +8,10 @@ Np = size(u,2);
 obs = u(:,observation);
 
 %% Time derivatives (vectorized)
-u_t = [ (u(2,:) - u(1,:))/timeMeshh; 
+u_t = zeros(Nt,Np);
+u_t = [ (u(end,:) - u(1,:))/timeMeshh; 
         (u(3:end,:) - u(1:end-2,:))/(2*timeMeshh); 
-        (u(end,:) - u(end-1,:))/timeMeshh ];
+        (u(1,:) - u(end,:))/timeMeshh ];
 uh   = (b.*u.' - eta.*(u.^2).').';
 uh_tt = [ (uh(3,:) - 2*uh(2,:) + uh(1,:)) / timeMeshh^2;
           (uh(3:end,:) - 2*uh(2:end-1,:) + uh(1:end-2,:)) / timeMeshh^2;
@@ -19,13 +20,13 @@ uh_tt = [ (uh(3,:) - 2*uh(2,:) + uh(1,:)) / timeMeshh^2;
 %% Laplacian using our stiffness matrix
 A = M\L;
 for i = 1: Nt
-    Laplaceu(i,:)   = (A * u(i,:).');
+    sLaplaceu(i,:)   = s.*(A * u(i,:).');
     Laplaceu_t(i,:) = (A * u_t(i,:).');
 end
 
 %% Domain residual
 modDomain = zeros(Nt,Np);
-modfull = uh_tt - s.'.* Laplaceu - Laplaceu_t;
+modfull = uh_tt - sLaplaceu - Laplaceu_t;
 modDomain(:,elements.interiorIdx) = modfull(:,elements.interiorIdx);
 
 % compute gradient for ALL time steps at once

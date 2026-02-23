@@ -33,7 +33,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.001;
+meshSize = 0.01;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -109,9 +109,9 @@ excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F1, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
-[cN, U2, F2, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 5, N, 10^(-12));
-[cN, U3, F3, ~, ~, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 5, N, 10^(-12));
+[cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
+[cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 5, N, 10^(-12));
+[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 5, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 
@@ -211,8 +211,9 @@ F = @(t,x,y) ...
 Fu  = @(t,x,y) ...
    omega1.^2.*(x.^2 + y.^2 + 1).*(cos(omega1.*t).*(4.*eta.*(x.^2 + y.^2 + 1) - b) + 2.*eta.*(x.^2 + y.^2 + 1).* cos(2.*t.*omega1));
 
-Flapu = @(t,x,y) (- 4 .* s .* (cos(omega1 .* t) + 2));
-Flaput = @(t,x,y) (+ 4 .* omega1 .* sin(omega1 .* t));
+Flapu = @(t,x,y) (4 .* (cos(omega1 .* t) + 2));
+Flaput = @(t,x,y) (- 4 .* omega1 .* sin(omega1 .* t));
+Fu_t = @(t,x,y)(-(x.^2 + y.^2 + 1).*sin(omega1.*t).*omega1);
 
 
 analyticModDomain = zeros(size(timeMesh,2), size(elements.points,1));
@@ -223,6 +224,7 @@ for i=1:size(timeMesh,2)
     auh(i,:) = Fu(timeMesh(i),elements.points(:,1), elements.points(:,2));
     alapu(i,:) = Flapu(timeMesh(i),elements.points(:,1), elements.points(:,2));
     alaput(i,:) = Flaput(timeMesh(i),elements.points(:,1), elements.points(:,2));
+    u_t(i,:) = Fu_t(timeMesh(i),elements.points(:,1), elements.points(:,2));
     analyticModDomain(i,:) = F(timeMesh(i),elements.points(:,1), elements.points(:,2));
 end
 
