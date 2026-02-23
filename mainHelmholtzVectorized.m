@@ -76,6 +76,7 @@ xlabel('x');
 ylabel('y');
 
 
+
 %% domain: rectangle in 2D - testi mesti
 % this compares the non-vectorized FEM solver against a vectorized version
 clear all

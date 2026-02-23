@@ -312,3 +312,49 @@ fprintf('Max space-time Laplacian error: %.3e\n',err);
 
 [modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
 
+l2boundaryValError = sqrt(sum(sum(abs(modBoundary - modBoundarySol).^2,2),1));
+linfboundaryValError = sqrt(max(max(abs(modBoundary - modBoundarySol))));
+% TODO: implement linearised forward operator and its adjoint
+
+%%
+point = [0.0;0.05];
+
+[v,idx] = min(sum((elements.points - point(:)').^2,2)); 
+
+node = [elements.points(idx,1);elements.points(idx,2)];
+
+T = 1/f2;
+% sampling frequency in time
+Fs = 1/T * 2 * (N);
+omega = omega1;
+U = squeeze(U1(N,:,:));
+
+Ns = 2000;
+pC = zeros(1,Ns);
+for m=0:(N-1)
+    pC = pC + U(m+1,idx) .* exp(1i.*m.*omega.*(0:(Ns-1))*1/Fs);
+end
+
+% time = (0:(N-1))*1/Fs;
+% timescale = 10^3;
+% figure, plot(time*timescale,real(pC))
+% ylabel("Acoustinc Pressure [Pa]");
+% xlabel("Time [ms]");
+
+MaxBins = 5;
+P0 = max(max(u1s(:,:)));
+
+
+window = hanning(Ns);
+freq =  Fs/Ns*(0:(Ns/2));
+y = abs(fft(window'.*real(pC)))/Ns;
+y1 = y(1:Ns/2+1);
+y1(2:end-1) = 2*y1(2:end-1);
+shiftedTF = fftshift(fft(real(pC)))/Ns;
+TFdB = 10*log10(y1/P0);
+fscaling = 10^3;
+M = min(MaxBins, Ns/2 + 1);
+xaxis = freq./fscaling;
+figure, plot(xaxis, TFdB(1:Ns/2+1))
+xlabel("Frequency [kHz]")
+ylabel("P/P0 [dB]")
