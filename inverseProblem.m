@@ -43,7 +43,7 @@ fullboundaryIdx = elements.edges(:,1);
 interiorIdx = setdiff(1:(size(elements.points,1)), fullboundaryIdx);
 elements.interiorIdx = interiorIdx;
 elements.boundaryIdx = fullboundaryIdx;
-elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation is suffices
+elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
 
 % specify the parameters we want to reconstruct
@@ -307,14 +307,27 @@ fprintf('Max space-time Laplacian error: %.3e\n',err);
 
 %%
 %  
+A = M\L;
+[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, u0, eta, b, s, gamma, Gx, Gy);
 
-[modDomain, modBoundary, obs] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u0, eta, b, s, gamma, Gx, Gy);
-
-[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, L, M, u1s, eta, b, s, gamma, Gx, Gy);
+[modDomainSol, modBoundarySol, obsSol] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, u1s, eta, b, s, gamma, Gx, Gy);
 
 l2boundaryValError = sqrt(sum(sum(abs(modBoundary - modBoundarySol).^2,2),1));
 linfboundaryValError = sqrt(max(max(abs(modBoundary - modBoundarySol))));
-% TODO: implement linearised forward operator and its adjoint
+%% TODO: implement linearised forward operator and its adjoint
+x0.u0 = u0;
+x0.s0 = s.';
+x0.b0 = b.';
+x0.eta0 = 0;
+x0.gamma = gamma;
+
+dx.du = u1s - u0;
+dx.ds = 0;
+dx.db = 0;
+dx.deta = 0;
+dx.gamma = gamma;
+
+[modDomainK, modBoundaryK, obsK] = linearisedForwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x0, dx, Gx, Gy);
 
 %%
 point = [0.0;0.05];
@@ -335,15 +348,9 @@ for m=0:(N-1)
     pC = pC + U(m+1,idx) .* exp(1i.*m.*omega.*(0:(Ns-1))*1/Fs);
 end
 
-% time = (0:(N-1))*1/Fs;
-% timescale = 10^3;
-% figure, plot(time*timescale,real(pC))
-% ylabel("Acoustinc Pressure [Pa]");
-% xlabel("Time [ms]");
 
 MaxBins = 5;
 P0 = max(max(u1s(:,:)));
-
 
 window = hanning(Ns);
 freq =  Fs/Ns*(0:(Ns/2));
