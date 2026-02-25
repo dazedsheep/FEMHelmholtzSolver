@@ -58,7 +58,7 @@ beta = 0;   % this is important check paper for clarification
 diffusivity = 0.005;
 values = [5]; % B/A of phantoms
 radii = [0.05];
-diffusivityPhantoms = [20]; % this allows to adjust the diffusivity for the phantoms
+diffusivityPhantoms = [0.05]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0];
 
 massDensity = 1000; %kg/m^3
@@ -202,6 +202,31 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 % domresidual = squeeze(-Mass*kappasq(:,harmonicIdx,1)).*squeeze(U1(N,harmonicIdx,:)) + (S * squeeze(U1(N,harmonicIdx,:))) + MassB * squeeze(U1(N,harmonicIdx,:)) - Mass * F1(harmonicIdx,:).';
 % u1boundary(elements.boundaryIdx) = gamma.*u1(0,boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1grad(0,boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
+%% for the inverse problem we construct u0_1, u0_2, u0_3 (in this case as solution of our approx. scheme)
+% at x0 = (s^0, b^0, 0), where s^0, b^0 are space constant functions
+
+s0 = 500.*ones(size(s));
+b0 = 150.*ones(size(b));
+eta0 = zeros(size(eta));
+kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
+
+% the boundary excitation we take from our exemplary function
+[~, U0_1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitations(:,:,1)), eta0, b0, 5, N, 10^(-12));
+[~, U0_2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitations(:,:,2)), eta0, b0, 5, N, 10^(-12));
+[cN, U0_3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitations(:,:,3)), eta0, b0, 5, N, 10^(-12));
+
+% there reference state in time x space
+u0_1 = calcSolution(timeMesh, squeeze(U0_1(N,:,:)), omega1);
+u0_2 = calcSolution(timeMesh, squeeze(U0_2(N,:,:)), omega2);
+u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega1);
+
+% just a quick sanity check --> the solutions MUST fulfill |\Delta u^0| \geq c > 0 and |u^0| \geq c > 0 a.e. in our time space cylinder
+if min(min(u0_1))<= 0 || min(min(u0_2)) <= 0 || min(min(u0_3)) <= 0
+    error('One of the reference states is not bounded from below.');
+end
+
+
+
 %%
 point = [0.0;0.05];
 
@@ -213,7 +238,7 @@ T = 1/f2;
 % sampling frequency in time
 Fs = 1/T * 2 * (N);
 omega = omega2;
-U = squeeze(U2(N,:,:));
+U = squeeze(U0_2(N,:,:));
 
 Ns = 2000;
 pC = zeros(1,Ns);
