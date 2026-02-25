@@ -34,7 +34,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.01;
+meshSize = 0.005;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -204,7 +204,8 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 
 %% for the inverse problem we construct u0_1, u0_2, u0_3 (in this case as solution of our approx. scheme)
 % at x0 = (s^0, b^0, 0), where s^0, b^0 are space constant functions
-
+% for finer triangular meshes (high accuracy) these can be precomputed and
+% stored to speed up computation
 s0 = 500.*ones(size(s));
 b0 = 150.*ones(size(b));
 eta0 = zeros(size(eta));
@@ -224,6 +225,32 @@ u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega1);
 if min(min(u0_1))<= 0 || min(min(u0_2)) <= 0 || min(min(u0_3)) <= 0
     error('One of the reference states is not bounded from below.');
 end
+
+% another sanity check --> check whether the boundary condition is
+% fulfilled
+u0_1_rb = calcRobinBoundary(elements, u0_1, gamma, Gx, Gy);
+u0_2_rb = calcRobinBoundary(elements, u0_2, gamma, Gx, Gy);
+u0_3_rb = calcRobinBoundary(elements, u0_3, gamma, Gx, Gy);
+for i=1:size(timeMesh,2)
+    u1sampled(i,:) = u1(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u2sampled(i,:) = u2(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u3sampled(i,:) = u3(timeMesh(i), elements.points(:,1), elements.points(:,2));
+end
+u1b = calcRobinBoundary(elements, u1sampled, gamma, Gx, Gy);
+u2b = calcRobinBoundary(elements, u2sampled, gamma, Gx, Gy);
+u3b = calcRobinBoundary(elements, u3sampled, gamma, Gx, Gy);
+
+% if these values are big, or do not decrease with a finer triangular mesh
+% something is odd
+l2boundaryValErroru0_1 = sqrt(sum(sum(abs(u1b(:,elements.boundaryIdx) - u0_1_rb(:,elements.boundaryIdx)).^2,2),1));
+linfboundaryValErroru0_1 = sqrt(max(max(abs(u1b(:,elements.boundaryIdx) - u0_1_rb(:,elements.boundaryIdx)))));
+
+l2boundaryValErroru0_2 = sqrt(sum(sum(abs(u2b(:,elements.boundaryIdx) - u0_2_rb(:,elements.boundaryIdx)).^2,2),1));
+linfboundaryValErroru0_2 = sqrt(max(max(abs(u2b(:,elements.boundaryIdx) - u0_2_rb(:,elements.boundaryIdx)))));
+
+l2boundaryValErroru0_3 = sqrt(sum(sum(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)).^2,2),1));
+linfboundaryValErroru0_3 = sqrt(max(max(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)))));
+
 
 
 
