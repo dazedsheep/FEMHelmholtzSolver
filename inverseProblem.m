@@ -314,20 +314,124 @@ A = M\L;
 
 l2boundaryValError = sqrt(sum(sum(abs(modBoundary - modBoundarySol).^2,2),1));
 linfboundaryValError = sqrt(max(max(abs(modBoundary - modBoundarySol))));
-%% TODO: implement linearised forward operator and its adjoint
-x0.u0 = u0;
-x0.s0 = s.';
-x0.b0 = b.';
+%% TODO: implement linearised forward operator and its adjoint + min prob
+
+% setup initial state(s)
+
+% sample the reference states on our triangle mesh
+
+for i=1:size(timeMesh,2)
+    u0_1(i,:) = u1(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u0_2(i,:) = u2(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u0_3(i,:) = u3(timeMesh(i), elements.points(:,1), elements.points(:,2));
+end
+
+% assemble the measurement vector
+[modDomainSol1, modBoundarySol1, obsSol1] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, u1s, eta, b, s, gamma, Gx, Gy);
+[modDomainSol2, modBoundarySol2, obsSol2] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, u2s, eta, b, s, gamma, Gx, Gy);
+[modDomainSol3, modBoundarySol3, obsSol3] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, u3s, eta, b, s, gamma, Gx, Gy);
+
+%%
+% in what point do we linearise (we will also start here)
+s0 = ones(size(elements.points(:,1))).*500;
+b0 = ones(size(elements.points(:,1)));
+eta0 = 0;
+
+% for each outer iteration we have to solve a system Ax = b, which we can't
+% solve directly --> min prob in inner loop
+x0.s0 = s0.';
+x0.b0 = b0.';
 x0.eta0 = 0;
 x0.gamma = gamma;
 
-dx.du = u1s - u0;
-dx.ds = 0;
-dx.db = 0;
-dx.deta = 0;
-dx.gamma = gamma;
 
-[modDomainK, modBoundaryK, obsK] = linearisedForwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x0, dx, Gx, Gy);
+
+x_n.u1 = u0_1;
+x_n.u2 = u0_2;
+x_n.u3 = u0_3;
+
+x_n.eta = x0.eta0.';
+x_n.b = x0.b0.';
+x_n.s = x0.s0.';
+x_n.gamma = gamma;
+
+alpha_n = 1;
+
+% we need to compute b_n = K*(h - F(x_n)) - P*P(x_n) + \alpha_n (x_0 -
+% x_n)
+[modDomain1, ~, obs1] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x_n.u1, x_n.eta, x_n.b, x_n.s, x_n.gamma, Gx, Gy);
+[modDomain2, ~, obs2] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x_n.u2, x_n.eta, x_n.b, x_n.s, x_n.gamma, Gx, Gy);
+[modDomain3, ~, obs3] = forwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x_n.u3, x_n.eta, x_n.b, x_n.s, x_n.gamma, Gx, Gy);
+
+hx.modDomain = modDomainSol1 - modDomain1;
+hx.obs = measurement_u1 - obs1;
+x0.u0 = u0_1;
+[adju1] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+hx.modDomain = modDomainSol2 - modDomain2;
+hx.obs = measurement_u2 - obs2;
+x0.u0 = u0_2;
+[adju2] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+hx.modDomain = modDomainSol3 - modDomain3;
+hx.obs = measurement_u3 - obs3;
+x0.u0 = u0_3;
+[adju3] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+
+adju1 = projectTimeConstant(timeMeshh, adju1);
+adju2 = projectTimeConstant(timeMeshh, adju2);
+adju3 = projectTimeConstant(timeMeshh, adju3);
+
+b_n.u1 = adju1.du - x_n.u1 + alpha_n .* (u0_1 - x_n.u1);
+b_n.u2 = adju2.du - x_n.u2 + alpha_n .* (u0_2 - x_n.u2);
+b_n.u3 = adju3.du - x_n.u3 + alpha_n .* (u0_3 - x_n.u3);
+b_n.eta = 1/3 .* (adju1.deta + adju2.deta + adju2.deta);
+b_n.b = 1/3 .* (adju1.db + adju2.db + adju2.db);
+b_n.s = 1/3 .* (adju1.ds + adju2.ds + adju2.ds);
+b_n.obs1 = adju1.dobs - x_n.u1(:,measurementPointsIdx) + alpha_n .*(u0_1(:,measurementPointsIdx) - x_n.u1(:,measurementPointsIdx));
+b_n.obs2 = adju2.dobs - x_n.u2(:,measurementPointsIdx) + alpha_n .*(u0_2(:,measurementPointsIdx) - x_n.u2(:,measurementPointsIdx));
+b_n.obs3 = adju3.dobs - x_n.u3(:,measurementPointsIdx) + alpha_n .*(u0_3(:,measurementPointsIdx) - x_n.u3(:,measurementPointsIdx));
+tau = 10e-6;
+
+% (K*K + P*P + alpha_n)(d_n)
+
+d_n.u1 = zeros(size(u1s));
+d_n.u2 = zeros(size(u1s));
+d_n.u3 = zeros(size(u1s));
+d_n.obs1 = zeros(size(obsSol1));
+d_n.obs2 = zeros(size(obsSol1));
+d_n.obs3 = zeros(size(obsSol1));
+d_n.eta = 0;
+d_n.s = 0;
+d_n.b = 0;
+
+
+dx.du = d_n.u1;
+dx.ds = d_n.s;
+dx.db = d_n.b;
+dx.deta = d_n.eta;
+dx.gamma = gamma;
+x0.u0 = u0_1;
+[modDomain, modBoundary, obs] = linearisedForwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x0, dx, Gx, Gy);
+hx.modDomain = modDomain;
+hx.obs = obs;
+[adju1] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+dx.du = d_n.u2;
+x0.u0 = u0_2;
+[modDomain, modBoundary, obs] = linearisedForwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x0, dx, Gx, Gy);
+hx.modDomain = modDomain;
+hx.obs = obs;
+[adju2] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+dx.du = d_n.u3;
+x0.u0 = u0_3;
+[modDomain, modBoundary, obs] = linearisedForwardOperatorAllAtOnce(elements, measurementPointsIdx, timeMeshh, A, x0, dx, Gx, Gy);
+hx.modDomain = modDomain;
+hx.obs = obs;
+[adju3] = adjointLinearisedForwardOperatorAllAtOnce(elements, timeMeshh, A, x0, hx, Gx, Gy);
+adju1 = projectTimeConstant(timeMeshh, adju1);
+adju2 = projectTimeConstant(timeMeshh, adju2);
+adju3 = projectTimeConstant(timeMeshh, adju3);
+deta = b_n.eta - (1/3 .* (adju1.deta + adju2.deta + adju2.deta) + alpha_n .* d_n.eta);
+db = b_n.b - (1/3 .* (adju1.db + adju2.db + adju2.db) + alpha_n .* d_n.b);
+ds = b_n.s - (1/3 .* (adju1.ds + adju2.ds + adju2.ds) + alpha_n .* d_n.s);
 
 %%
 point = [0.0;0.05];
@@ -339,8 +443,8 @@ node = [elements.points(idx,1);elements.points(idx,2)];
 T = 1/f2;
 % sampling frequency in time
 Fs = 1/T * 2 * (N);
-omega = omega1;
-U = squeeze(U1(N,:,:));
+omega = omega2;
+U = squeeze(U2(N,:,:));
 
 Ns = 2000;
 pC = zeros(1,Ns);
