@@ -34,7 +34,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.005;
+meshSize = 0.01;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -251,8 +251,22 @@ linfboundaryValErroru0_2 = sqrt(max(max(abs(u2b(:,elements.boundaryIdx) - u0_2_r
 l2boundaryValErroru0_3 = sqrt(sum(sum(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)).^2,2),1));
 linfboundaryValErroru0_3 = sqrt(max(max(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)))));
 
+%% compute the linearised forward operator in u0
+x0.u0 = squeeze(U0_1(cN,:,:)); % we use the harmonic expansion of u^0_1
+x0.F = F1;
+x0.s0 = s0;
+x0.b0 = b0;
+x0.eta0 = eta0;
+% we need to construct kappa0
+x0.kappa0 = squeeze(kappasq0(:,:,1));
 
+% the differences
+dx.ds = s - s0;
+dx.db = b - b0;
+dx.deta = eta - eta0;
+dx.excitation = zeros(size(elements.points,1), N);
 
+[~, DU, DF] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, 5, N, true);
 
 %%
 point = [0.0;0.05];
