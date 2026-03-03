@@ -108,9 +108,9 @@ for i=1:N
 
         
         F(j+1,:) = -x0.eta0.'.*(p_m_eta).*j^2.*x0.kappa0(:,j+1).'.*1./x0.b0.'; % et0 part
-        F(j+1,:) = F(j+1, :) + dx.deta.'.*p_m; % deta part (we use the precomputed stuff from u0, this takes into account everything)
+        F(j+1,:) = F(j+1, :) - dx.deta.'.*j^2.*x0.kappa0(:,j+1).'.*1./(2.*x0.b0.').*p_m; % deta part (we use the precomputed stuff from u0, this takes into account everything)
         F(j+1,:) = F(j+1, :) + dx.db.'.*j^2.*x0.kappa0(:,j+1).'.*1./x0.b0.'.*x0.u0(j+1,:); %db part
-        F(j+1,:) = F(j+1, :) + dx.ds.'.*(1./(x0.s0.' + 1i.*j.*omega)).*(-x0.kappa0(:,j+1).'.*j^2.*x0.u0(j+1,:) + x0.F(j+1,:)); %ds part (here F(j+1,:) is correct)
+        F(j+1,:) = F(j+1, :) + dx.ds.'.*(1./(x0.s0.' + 1i.*j.*omega)).*(-x0.kappa0(:,j+1).'.*j^2.*x0.u0(j+1,:) - x0.F(j+1,:)); %ds part (here F(j+1,:) is correct)
         F(j+1,elements.boundaryIdx)  = 0;
 
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*x0.kappa0(:,j+1), beta, F(j+1,:).', dx.excitation(:,j+1), n, K, rowK, colK, M_t, tBM);

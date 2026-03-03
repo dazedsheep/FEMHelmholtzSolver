@@ -65,7 +65,8 @@ massDensity = 1000; %kg/m^3
 
 speed_of_sound = 2;
 
-N = 5; % number of harmonics-1 we will compute
+N = 6; % number of harmonics-1 we will compute
+nIter = 6;
 
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
@@ -110,9 +111,9 @@ excitations(:,2,2) = sourceFrequency;
 excitations(:,1,3) = 2.*sourceConstant;
 excitations(:,2,3) = 2.*sourceFrequency;
 %%
-[cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, 5, N, 10^(-12));
-[cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, 5, N, 10^(-12));
-[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, 5, N, 10^(-12));
+[cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
+[cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
+[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 
@@ -210,11 +211,14 @@ s0 = 500.*ones(size(s));
 b0 = 150.*ones(size(b));
 eta0 = zeros(size(eta));
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
-
+excitationsReferenceState = excitations;
+% for i=1:size(elements.points,1)
+%     u1Sampled(i) = u1F(elements.points(i,1), elements.points(i,2));
+% end
 % the boundary excitation we take from our exemplary function
-[~, U0_1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitations(:,:,1)), eta0, b0, 5, N, 10^(-12));
-[~, U0_2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitations(:,:,2)), eta0, b0, 5, N, 10^(-12));
-[cN, U0_3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitations(:,:,3)), eta0, b0, 5, N, 10^(-12));
+[~, U0_1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitationsReferenceState(:,:,1)), eta0, b0, nIter, N, 10^(-12));
+[~, U0_2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitationsReferenceState(:,:,2)), eta0, b0, nIter, N, 10^(-12));
+[cN, U0_3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), eta0, b0, nIter, N, 10^(-12));
 
 % there reference state in time x space
 u0_1 = calcSolution(timeMesh, squeeze(U0_1(N,:,:)), omega1);
@@ -222,9 +226,13 @@ u0_2 = calcSolution(timeMesh, squeeze(U0_2(N,:,:)), omega2);
 u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega1);
 
 % just a quick sanity check --> the solutions MUST fulfill |\Delta u^0| \geq c > 0 and |u^0| \geq c > 0 a.e. in our time space cylinder
-if min(min(u0_1))<= 0 || min(min(u0_2)) <= 0 || min(min(u0_3)) <= 0
+if min(min(u0_1)) <= 0 || min(min(u0_2)) <= 0 || min(min(u0_3)) <= 0
     error('One of the reference states is not bounded from below.');
 end
+% % check the laplacian
+% if min(min(M\L*u0_1.'))<= 0 || min(min(M\L*u0_2.')) <= 0 || min(min(M\L*u0_3.')) <= 0
+%     error('Laplacian of one of the reference states is not bounded from below.');
+% end
 
 % another sanity check --> check whether the boundary condition is
 % fulfilled
@@ -236,6 +244,7 @@ for i=1:size(timeMesh,2)
     u2sampled(i,:) = u2(timeMesh(i), elements.points(:,1), elements.points(:,2));
     u3sampled(i,:) = u3(timeMesh(i), elements.points(:,1), elements.points(:,2));
 end
+
 u1b = calcRobinBoundary(elements, u1sampled, gamma, Gx, Gy);
 u2b = calcRobinBoundary(elements, u2sampled, gamma, Gx, Gy);
 u3b = calcRobinBoundary(elements, u3sampled, gamma, Gx, Gy);
@@ -251,23 +260,27 @@ linfboundaryValErroru0_2 = sqrt(max(max(abs(u2b(:,elements.boundaryIdx) - u0_2_r
 l2boundaryValErroru0_3 = sqrt(sum(sum(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)).^2,2),1));
 linfboundaryValErroru0_3 = sqrt(max(max(abs(u3b(:,elements.boundaryIdx) - u0_3_rb(:,elements.boundaryIdx)))));
 
+
+%% theory tells us that we do not need that u0 is a solution of our PDE
+% prepare the harmonics of u0 
+
 %% compute the linearised forward operator in u0
 x0.u0 = squeeze(U0_1(cN,:,:)); % we use the harmonic expansion of u^0_1
 x0.F = F1;
-x0.s0 = s0;
-x0.b0 = b0;
+x0.s0 = s.*0.1;
+x0.b0 = b.*0.99;
 x0.eta0 = eta0;
 % we need to construct kappa0
 x0.kappa0 = squeeze(kappasq0(:,:,1));
 
 % the differences
 dx.ds = s - s0;
-dx.db = b - b0;
-dx.deta = eta - eta0;
+dx.db = b0 - b0;
+dx.deta = eta0;
 dx.excitation = zeros(size(elements.points,1), N);
 
-[~, DU, DF] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, 5, N, true);
-
+[~, DU, DF] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, nIter, N, true);
+du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
 %%
 point = [0.0;0.05];
 

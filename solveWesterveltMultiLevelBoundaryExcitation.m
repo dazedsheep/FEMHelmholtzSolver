@@ -89,8 +89,8 @@ for i=1:N
 
         end
 
-        F(j+1,:) = -j^2.*kappa(:,j+1).*1./(2.*b).*f.*p_m.';
-        F(j+1,elements.boundaryIdx)  = 0;
+        F(j+1,:) = -j^2.*kappa(:,j+1).*1./(2.*b).*f.*p_m.' + excitation(:, j+1);
+        F(j+1,elements.boundaryIdx) = 0;
 
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*kappa(:,j+1), beta, F(j+1,:).', excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
 
