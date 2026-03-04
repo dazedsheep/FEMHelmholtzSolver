@@ -262,13 +262,26 @@ linfboundaryValErroru0_3 = sqrt(max(max(abs(u3b(:,elements.boundaryIdx) - u0_3_r
 
 
 %% theory tells us that we do not need that u0 is a solution of our PDE
-% prepare the harmonics of u0 
-
+% prepare the harmonics of our reference states
+u0Csampled = u1C(elements.points(:,1), elements.points(:,2));
+u0Fsampled = u1F(elements.points(:,1), elements.points(:,2));
+u0sampled = zeros(size(squeeze(U0_1(cN,:,:))));
+laplaceu0 = zeros(size(squeeze(U0_1(cN,:,:))));
+u0sampled(1,:) = u0Csampled;
+u0sampled(2,:) = u0Fsampled;
+laplaceu0(1,:) = 8;
+laplaceu0(2,:) = 4;
 %% compute the linearised forward operator in u0
-x0.u0 = squeeze(U0_1(cN,:,:)); % we use the harmonic expansion of u^0_1
-x0.F = F1;
-x0.s0 = s.*0.1;
-x0.b0 = b.*0.99;
+
+% u0 is a solution of our PDE
+%x0.u0 = squeeze(U0_1(cN,:,:)); % we use the harmonic expansion of u^0_1
+%x0.F = F1;
+
+% u0 is just a reference state
+x0.u0 = u0sampled;
+x0.laplaceu0 = laplaceu0;
+x0.s0 = s.*0.7;
+x0.b0 = b.*0.7;
 x0.eta0 = eta0;
 % we need to construct kappa0
 x0.kappa0 = squeeze(kappasq0(:,:,1));
@@ -276,11 +289,14 @@ x0.kappa0 = squeeze(kappasq0(:,:,1));
 % the differences
 dx.ds = s - s0;
 dx.db = b0 - b0;
-dx.deta = eta0;
+dx.deta = eta - eta0;
 dx.excitation = zeros(size(elements.points,1), N);
 
-[~, DU, DF] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, nIter, N, true);
+[~, DU, DF] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, nIter, N, false);
 du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+
+
+
 %%
 point = [0.0;0.05];
 
