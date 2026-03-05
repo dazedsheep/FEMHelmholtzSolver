@@ -13,7 +13,7 @@ u3 = @(t,x,y) 2 .* u1(t,x,y);
 u1grad = @(t,x,y)  cat(3,...
     (2.*x).* (cos(omega1 .* t) + 2), ...
     (2.*y).* (cos(omega1 .* t) + 2));
-u1F = @(x,y) (x.^2 + y.^2 + 1); 
+u1F = @(x,y) 1./2.*(x.^2 + y.^2 + 1); 
 u1C = @(x,y) (x.^2 + y.^2 + 1) .* 2;
 u1Fgrad = @(x,y) cat(3,...
     2 .* x, ...
@@ -268,9 +268,15 @@ u0Fsampled = u1F(elements.points(:,1), elements.points(:,2));
 u0sampled = zeros(size(squeeze(U0_1(cN,:,:))));
 laplaceu0 = zeros(size(squeeze(U0_1(cN,:,:))));
 u0sampled(1,:) = u0Csampled;
-u0sampled(2,:) = u0Fsampled;
+u0sampled(2,:) = u0Fsampled; %-\omega, and +\omega
 laplaceu0(1,:) = 8;
-laplaceu0(2,:) = 4;
+laplaceu0(2,:) = 2; %-\omega and +\omega
+% check whether we correctly splitted the reference state into its harmonic
+% components
+u0recon = calcSolution(timeMesh,u0sampled,omega1);
+if norm(norm(abs(u0recon - u1sampled),2),2) > 10e-10
+    error('Harmonic representation of reference state does not match the reference state!');
+end
 %% compute the linearised forward operator in u0
 
 % u0 is a solution of our PDE
