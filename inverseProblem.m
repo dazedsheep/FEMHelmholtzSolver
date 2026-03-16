@@ -268,7 +268,7 @@ u0Fsampled = u1F(elements.points(:,1), elements.points(:,2));
 u0sampled = zeros(size(squeeze(U0_1(cN,:,:))));
 laplaceu0 = zeros(size(squeeze(U0_1(cN,:,:))));
 u0sampled(1,:) = u0Csampled;
-u0sampled(2,:) = 1./2.*u0Fsampled;
+u0sampled(2,:) = u0Fsampled;
 laplaceu0(1,:) = 8;
 laplaceu0(2,:) = 4;
 % check whether our fourier transform is correct
@@ -288,8 +288,8 @@ end
 % u0 is just a reference state - for the frozen Newton
 x0.u0 = u0sampled;
 x0.laplaceu0 = laplaceu0;
-x0.s0 = s.*0.7;
-x0.b0 = b.*0.7;
+x0.s0 = mean(s.*0.7).*ones(size(s));
+x0.b0 = mean(b.*0.7).*ones(size(s));;
 x0.eta0 = eta0;
 % we need to construct kappa0
 x0.kappa0 = squeeze(kappasq0(:,:,1));
@@ -315,16 +315,27 @@ x0.kappa0 = squeeze(kappasq0(:,:,3));
 
 
 % solution using (xn), we can compute the residual for each harmonic
+% we need to defined the residual on the whole of \overline{\Omega}, the
+% FEM solver demands this
+residual_1 = zeros(size(squeeze(U1(N,:,:))));
+residual_3 = zeros(size(squeeze(U1(N,:,:))));
+residual_2 = zeros(size(squeeze(U1(N,:,:))));
+
 [~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitationsReferenceState(:,:,1)), x0.eta0, x0.b0, nIter, N, 10^(-12));
-residual_1 = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
+residual_1(:,measurementPointsIdx) = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
+% the adjoint state (linearised PDE) is only driven by the observation
+% difference, all the conjugation is handled by the function itself
+x0.u0 = u0sampled;
+x0.kappa0 = squeeze(kappasq0(:,:,1));
+%%
+[~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, residual_1, nIter, N);
+%%
 
 [~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitationsReferenceState(:,:,2)), x0.eta0, x0.b0, nIter, N, 10^(-12));
-residual_2 = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
+residual_2(:,measurementPointsIdx) = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
 
 [~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), x0.eta0, x0.b0, nIter, N, 10^(-12));
-residual_3 = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
-
-% the adjoint state is only driven by the observation difference
+residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
 
 
 %%
