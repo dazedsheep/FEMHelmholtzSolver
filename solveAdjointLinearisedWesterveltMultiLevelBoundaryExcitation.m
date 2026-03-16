@@ -1,4 +1,4 @@
-function [i, u, F] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, x0, yobs, nIterations, nHarmonics)
+function [i, u, F, db_adjoint, ds_adjoint, deta_adjoint] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, x0, yobs, nIterations, nHarmonics)
 % yobs has to be defined on the hole of \overline{\Omega}, just fill stuff
 % with 0
 n = size(elements.points,1);
@@ -64,10 +64,11 @@ bcol = elements.bedges(:,[1 1 2 2]).';
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
 
 F = zeros(N, n);
+u2_tt = zeros(N, n);
 for i=1:N
     for j=0:min((i-1),nHarmonics-1)
         p_m_eta = zeros(1,n);
-        p_m = zeros(1,n);
+        
         % the first iteration has just the excitation on the right hand side
         % index 1 is the zero-th solution
         if i>1 && j>0
@@ -77,9 +78,12 @@ for i=1:N
             % ---------- First sum ----------
             % sum_{l=1}^j u_l * p_{j-l} * j^2 * \omega^2
             for l = 1:j
-                p_m_eta = p_m_eta + j.^2.*omega^2.* ...
+                p_m_eta = p_m_eta + j.^2.*omega^2.* conj( ...
+                    squeeze(x0.u0(l+1,:))) .* ...
+                    squeeze(u(i-1,(j-l)+1,:)).';
+                 u2_tt(j+1,:) =  u2_tt(j+1,:) + conj(...
                     squeeze(x0.u0(l+1,:)) .* ...
-                    conj(squeeze(u(i-1,(j-l)+1,:)).');
+                    squeeze(x0.u0((j-l)+1,:)));
             end
 
             % ---------- Second sum ----------
@@ -89,6 +93,9 @@ for i=1:N
                     conj(squeeze(squeeze(u(i-1,r+1,:)).')) + ...
                     (squeeze(u(i-1,r+1,:)).').*(r.^2) .* ...
                     conj(squeeze(x0.u0((r+j)+1,:))).*(r+j).^2 );
+                u2_tt(j+1,:) = u2_tt(j+1,:) + 2 * ...
+                    conj(squeeze(x0.u0(r+1,:))) .* ...
+                    squeeze(x0.u0((r+j)+1,:));
             end
 
         end
@@ -98,6 +105,16 @@ for i=1:N
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*conj(x0.kappa0(:,j+1)), beta, F(j+1,:).', yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
     end
 
+end
+
+% compute the adjoint for the params
+db_adjoint = zeros(size(squeeze(u(N,:,:))));
+ds_adjoint = zeros(size(squeeze(u(N,:,:))));
+deta_adjoint = zeros(size(squeeze(u(N,:,:))));
+for j=1:N
+    db_adjoint(j,:) = j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j,:)).* squeeze(u(N,j,:)).';
+    ds_adjoint(j,:) = 1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j,:)) .* squeeze(u(N,j,:)).';
+    deta_adjoint(j,:) = -j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j,:) .* squeeze(u(N,j,:)).';
 end
 
 

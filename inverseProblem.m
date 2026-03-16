@@ -272,7 +272,7 @@ u0sampled(2,:) = u0Fsampled;
 laplaceu0(1,:) = 8;
 laplaceu0(2,:) = 4;
 % check whether our fourier transform is correct
-u0sampledrecon = calcSolution(timeMesh, u0sampled,omega1);
+u0sampledrecon = calcSolution(timeMesh, u0sampled, omega1);
 
 % another sanity check
 if norm(norm(abs(u0sampledrecon - u1sampled),2),2) > 10e-8
@@ -289,7 +289,7 @@ end
 x0.u0 = u0sampled;
 x0.laplaceu0 = laplaceu0;
 x0.s0 = mean(s.*0.7).*ones(size(s));
-x0.b0 = mean(b.*0.7).*ones(size(s));;
+x0.b0 = mean(b.*0.7).*ones(size(s));
 x0.eta0 = eta0;
 % we need to construct kappa0
 x0.kappa0 = squeeze(kappasq0(:,:,1));
@@ -305,7 +305,7 @@ x0.u0 = u0sampled;
 x0.kappa0 = squeeze(kappasq0(:,:,1));
 [~, DU_1, DF_1] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, dx, nIter, N, false);
 
-x0.u0 = u0sampled; % the frequency only differs
+x0.u0 = u0sampled; % the frequency differs only
 x0.kappa0 = squeeze(kappasq0(:,:,2));
 [~, DU_2, DF_2] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0, dx, nIter, N, false);
 
@@ -321,19 +321,38 @@ residual_1 = zeros(size(squeeze(U1(N,:,:))));
 residual_3 = zeros(size(squeeze(U1(N,:,:))));
 residual_2 = zeros(size(squeeze(U1(N,:,:))));
 
-[~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitationsReferenceState(:,:,1)), x0.eta0, x0.b0, nIter, N, 10^(-12));
+% start with x0
+xn = x0;
+alpha = 1;
+% F_1 (x_n^\delta)
+[~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitationsReferenceState(:,:,1)), xn.eta0, xn.b0, nIter, N, 10^(-12));
+
+% r_1:= h^\delta_1 - F_1 (x_n^\delta)
 residual_1(:,measurementPointsIdx) = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
 % the adjoint state (linearised PDE) is only driven by the observation
 % difference, all the conjugation is handled by the function itself
 x0.u0 = u0sampled;
 x0.kappa0 = squeeze(kappasq0(:,:,1));
-%%
-[~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, residual_1, nIter, N);
-%%
+%
+[~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0, residual_1, nIter, N);
 
+db_a_t_1 = calcSolution(timeMesh, db_a, omega1);
+db_a_int_1 = sum(db_a_t_1 .* timeMesh(2) - timeMesh(1),1); % TODO: use trapezoid rule
+
+db_s_t_1 = calcSolution(timeMesh, ds_a, omega1);
+db_s_int_1 = sum(db_s_t_1 .* timeMesh(2) - timeMesh(1),1); % TODO: use trapezoid rule
+
+db_eta_t_1 = calcSolution(timeMesh, deta_a, omega1);
+db_eta_int_1 = sum(db_eta_t_1 .* timeMesh(2) - timeMesh(1),1); % TODO: use trapezoid rule
+
+%%
 [~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitationsReferenceState(:,:,2)), x0.eta0, x0.b0, nIter, N, 10^(-12));
 residual_2(:,measurementPointsIdx) = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
+x0.u0 = u0sampled;
+x0.kappa0 = squeeze(kappasq0(:,:,2));
 
+
+%%
 [~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), x0.eta0, x0.b0, nIter, N, 10^(-12));
 residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
 
