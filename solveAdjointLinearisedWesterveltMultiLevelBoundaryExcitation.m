@@ -100,6 +100,7 @@ for i=1:N
 
         end
         F(j+1,:) = -x0.eta0.'.*(p_m_eta).*j^2.*conj(x0.kappa0(:,j+1).').*1./x0.b0.'; % et0 part (the only one in the adjoint)
+        F(j+1,elements.boundaryIdx) = 0; % just for safety
         % the boundary observation does not need to be scaled as we use the
         % normalised system!
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*conj(x0.kappa0(:,j+1)), beta, F(j+1,:).', yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
