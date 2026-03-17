@@ -113,9 +113,9 @@ db_adjoint = zeros(size(squeeze(u(N,:,:))));
 ds_adjoint = zeros(size(squeeze(u(N,:,:))));
 deta_adjoint = zeros(size(squeeze(u(N,:,:))));
 for j=1:N
-    db_adjoint(j,:) = j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j,:)).* squeeze(u(N,j,:)).';
-    ds_adjoint(j,:) = 1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j,:)) .* squeeze(u(N,j,:)).';
-    deta_adjoint(j,:) = -j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j,:) .* squeeze(u(N,j,:)).';
+    db_adjoint(j,:) = -j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j,:)).* squeeze(u(N,j,:)).';
+    ds_adjoint(j,:) = -1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j,:)) .* squeeze(u(N,j,:)).';
+    deta_adjoint(j,:) = j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j,:) .* squeeze(u(N,j,:)).';
 end
 
 

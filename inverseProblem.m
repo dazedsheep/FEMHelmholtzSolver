@@ -419,77 +419,76 @@ newtonIterations = 10;
 
 for newtonIter = 1:newtonIterations
 
-% in each Newton step we have to do a CG
+    % in each Newton step we have to do a CG
 
-% A = K*K + P*P + alpha
+    % A = K*K + P*P + alpha
 
-% A(xn)
-y = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N);
+    % A(xn)
+    y = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N);
 
-%prepare rhs = A(xn) + K^*(h - F(xn)) + \alpha_n(x0 - xn)
-% F(xn)
-% do not forget to update kappa
-xn.refState_1.kappa0 = constructKappaReparameterized(elements, xn.refState_1.s0, xn.refState_1.b0, omega1, N); 
-xn.refState_2.kappa0 = constructKappaReparameterized(elements, xn.refState_2.s0, xn.refState_2.b0, omega2, N); 
-xn.refState_3.kappa0 = constructKappaReparameterized(elements, xn.refState_3.s0, xn.refState_3.b0, omega1, N); 
+    %prepare rhs = A(xn) + K^*(h - F(xn)) + \alpha_n(x0 - xn)
+    % F(xn)
+    % do not forget to update kappa
+    xn.refState_1.kappa0 = constructKappaReparameterized(elements, xn.refState_1.s0, xn.refState_1.b0, omega1, N);
+    xn.refState_2.kappa0 = constructKappaReparameterized(elements, xn.refState_2.s0, xn.refState_2.b0, omega2, N);
+    xn.refState_3.kappa0 = constructKappaReparameterized(elements, xn.refState_3.s0, xn.refState_3.b0, omega1, N);
 
-[~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xn.refState_1.kappa0, squeeze(excitationsReferenceState(:,:,1)), xn.refState_1.eta0, xn.refState_1.b0, nIter, N, 10^(-12));
-[~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, xn.refState_2.kappa0, squeeze(excitationsReferenceState(:,:,2)), xn.refState_2.eta0, xn.refState_2.b0, nIter, N, 10^(-12));
-[~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xn.refState_3.kappa0, squeeze(excitationsReferenceState(:,:,3)), xn.refState_3.eta0, xn.refState_3.b0, nIter, N, 10^(-12));
-residual_1 = zeros(size(squeeze(Un_1(N,:,:))));
-residual_3 = zeros(size(squeeze(Un_1(N,:,:))));
-residual_2 = zeros(size(squeeze(Un_1(N,:,:))));
-residual_1(:,measurementPointsIdx) = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
-residual_2(:,measurementPointsIdx) = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
-residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
+    [~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xn.refState_1.kappa0, squeeze(excitationsReferenceState(:,:,1)), xn.refState_1.eta0, xn.refState_1.b0, nIter, N, 10^(-12));
+    [~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, xn.refState_2.kappa0, squeeze(excitationsReferenceState(:,:,2)), xn.refState_2.eta0, xn.refState_2.b0, nIter, N, 10^(-12));
+    [~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xn.refState_3.kappa0, squeeze(excitationsReferenceState(:,:,3)), xn.refState_3.eta0, xn.refState_3.b0, nIter, N, 10^(-12));
+    residual_1 = zeros(size(squeeze(Un_1(N,:,:))));
+    residual_3 = zeros(size(squeeze(Un_1(N,:,:))));
+    residual_2 = zeros(size(squeeze(Un_1(N,:,:))));
+    residual_1(:,measurementPointsIdx) = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
+    residual_2(:,measurementPointsIdx) = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
+    residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
 
-%K^*(h  - F(xn))
-[~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
-[db_1, ds_1, deta_1] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
+    %K^*(h  - F(xn))
+    [~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
+    [db_1, ds_1, deta_1] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
 
-[~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
-[db_2, ds_2, deta_2] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega2);
+    [~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
+    [db_2, ds_2, deta_2] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega2);
 
-[~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, residual_3, nIter, N);
-[db_3, ds_3, deta_3] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
-rhs = xn;
-rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0 - xn.refState_1.eta0);
-rhs.refState_1.s0     = y.refState_1.s0     + ds_1   + alpha.* (x0.refState_1.s0 - xn.refState_1.s0);
-rhs.refState_1.b0     = y.refState_1.b0     + db_1   + alpha.* (x0.refState_1.b0 - xn.refState_1.b0);
+    [~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, residual_3, nIter, N);
+    [db_3, ds_3, deta_3] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
+    rhs = xn;
+    rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0 - xn.refState_1.eta0);
+    rhs.refState_1.s0     = y.refState_1.s0     + ds_1   + alpha.* (x0.refState_1.s0 - xn.refState_1.s0);
+    rhs.refState_1.b0     = y.refState_1.b0     + db_1   + alpha.* (x0.refState_1.b0 - xn.refState_1.b0);
 
-rhs.refState_2.eta0   = y.refState_2.eta0   + deta_2 + alpha.* (x0.refState_2.eta0 - xn.refState_2.eta0);
-rhs.refState_2.s0     = y.refState_2.s0     + ds_2   + alpha.* (x0.refState_2.s0 - xn.refState_2.s0);
-rhs.refState_2.b0     = y.refState_2.b0     + db_2   + alpha.* (x0.refState_2.b0 - xn.refState_2.b0);
+    rhs.refState_2.eta0   = y.refState_2.eta0   + deta_2 + alpha.* (x0.refState_2.eta0 - xn.refState_2.eta0);
+    rhs.refState_2.s0     = y.refState_2.s0     + ds_2   + alpha.* (x0.refState_2.s0 - xn.refState_2.s0);
+    rhs.refState_2.b0     = y.refState_2.b0     + db_2   + alpha.* (x0.refState_2.b0 - xn.refState_2.b0);
 
-rhs.refState_3.eta0   = y.refState_3.eta0  + deta_3  + alpha.* (x0.refState_3.eta0 - xn.refState_3.eta0);
-rhs.refState_3.s0     = y.refState_3.s0    + ds_3    + alpha.* (x0.refState_3.s0 - xn.refState_3.s0);
-rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0 - xn.refState_3.b0);
+    rhs.refState_3.eta0   = y.refState_3.eta0  + deta_3  + alpha.* (x0.refState_3.eta0 - xn.refState_3.eta0);
+    rhs.refState_3.s0     = y.refState_3.s0    + ds_3    + alpha.* (x0.refState_3.s0 - xn.refState_3.s0);
+    rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0 - xn.refState_3.b0);
 
-% now we need to solve Az = rhs
-CGIterations = 40;
-z = xn;
-res = minusParameters(rhs, applyA(z, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N)); % 
-pk = res;
+    % now we need to solve Az = rhs
+    CGIterations = 40;
+    z = xn;
+    res = minusParameters(rhs, applyA(z, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N)); %
+    pk = res;
+    stopres = zeros(CGIterations,1);
+    for iter = 1:CGIterations
+        Apk = applyA(pk, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N);
+        rr = calcInnerProductParameters(res,res, elements);
+        d(iter) = rr / (calcInnerProductParameters(pk,Apk ,elements));
+        z = addParameters(z, scalarMulParameters(d(iter), pk));
+        resNew = minusParameters(res, scalarMulParameters(d(iter), Apk));
+        rrN = calcInnerProductParameters(resNew, resNew, elements);
+        stopres(iter) =rrN;
 
-for iter = 1:CGIterations
-    Apk = applyA(pk, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N);
-    
-    rr = calcInnerProductParameters(res,res, elements);
-    d(iter) = rr / (calcInnerProductParameters(pk,Apk ,elements));
-    z = addParameters(z, scalarMulParameters(d(iter), pk));
-    resNew = minusParameters(res, scalarMulParameters(d(iter), Apk));
-    rrN = calcInnerProductParameters(resNew, resNew, elements);
-    stopres(iter) =rrN;
+        if stopres(iter) < 10e-20
+            break;
+        end
 
-    if stopres(iter) < 10e-10
-        break;
+        betak(iter) = rrN/rr;
+
+        pk = addParameters(resNew, scalarMulParameters(betak(iter), pk));
+        res = resNew;
     end
-    
-    betak(iter) = rrN/rr;
-
-    pk = addParameters(resNew, scalarMulParameters(betak(iter), pk));
-    res = resNew;
-end
 
     xn = z;
     alpha = alpha*q;
