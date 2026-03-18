@@ -74,8 +74,8 @@ for i=1:N
             % complex
 
             % ---------- First sum ----------
-            % sum_{l=1}^j u_l * u_{j-l}
-            for l = 1:j
+            % sum_{l=0}^j u_l * u_{j-l}
+            for l = 0:j
                 p_m_eta = p_m_eta + ...
                     squeeze(x0.u0(l+1,:)) .* ...
                     squeeze(u(i-1,(j-l)+1,:)).';
@@ -89,25 +89,26 @@ for i=1:N
             % 2 * sum_{r=0}^{N-1-j} conj(u_r) * u_{r+j}
             for r = 0:((N-1)-j)
                 p_m_eta = p_m_eta + ...
-                    conj(x0.u0((r+j)+1,:)) .* ...
-                    squeeze(squeeze(u(i-1,r+1,:)).') + ...
+                    conj(x0.u0(r+1,:)) .* ...
+                    squeeze(squeeze(u(i-1,j+r+1,:)).') + ...
                     conj(squeeze(u(i-1,r+1,:)).') .* ...
                     squeeze(x0.u0((r+j)+1,:));
+
                   p_m = p_m + 2 * ...
                     conj(squeeze(x0.u0(r+1,:))) .* ...
                     squeeze(x0.u0((r+j)+1,:));
             end
 
         end
-
-        
-        F(j+1,:) = -x0.eta0.'.*(p_m_eta).*j^2.*x0.kappa0(:,j+1).'.*1./x0.b0.'; % et0 part
-        F(j+1,:) = F(j+1, :) - dx.deta.'.*j^2.*x0.kappa0(:,j+1).'.*1./(2.*x0.b0.').*p_m; % deta part (we use the precomputed stuff from u0, this takes into account everything)
-        F(j+1,:) = F(j+1, :) + dx.db.'.*j^2.*x0.kappa0(:,j+1).'.*1./x0.b0.'.*x0.u0(j+1,:); %db part
+        cs = 1./(x0.s0.' + 1i.*j.*omega);
+        cf = j.^2.*omega.^2.*cs;
+        F(j+1,:) = -x0.eta0.'.*(p_m_eta).*cf; % et0 part
+        F(j+1,:) = F(j+1, :) - dx.deta.'.*cf./2.*p_m; % deta part (we use the precomputed stuff from u0, this takes into account everything)
+        F(j+1,:) = F(j+1, :) + dx.db.'.*cf.*x0.u0(j+1,:); %db part
         if (linPointIsSolution == false)
-           F(j+1,:) = F(j+1, :) + dx.ds.'.*(1./(x0.s0.' + 1i.*j.*omega)).*(-x0.laplaceu0(j+1,:)); %ds part +
+           F(j+1,:) = F(j+1, :) + dx.ds.'.*cs.*(-x0.laplaceu0(j+1,:)); %ds part 
         else
-           F(j+1,:) = F(j+1, :) + dx.ds.'.*(1./(x0.s0.' + 1i.*j.*omega)).*(-x0.kappa0(:,j+1).'.*j^2.*x0.u0(j+1,:) - x0.F(j+1,:)); %ds part (here F(j+1,:) is correct)
+           F(j+1,:) = F(j+1, :) + dx.ds.'.*cs.*(-x0.kappa0(:,j+1).'.*j^2.*x0.u0(j+1,:) - x0.F(j+1,:)); %ds part (here F(j+1,:) is correct)
         end
         F(j+1,elements.boundaryIdx)  = 0;
 

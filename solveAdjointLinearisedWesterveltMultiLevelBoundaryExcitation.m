@@ -77,11 +77,12 @@ for i=1:N
 
             % ---------- First sum ----------
             % sum_{l=1}^j u_l * p_{j-l} * j^2 * \omega^2
-            for l = 1:j
-                p_m_eta = p_m_eta + j.^2.*omega^2.* conj( ...
+            for l = 0:j
+                p_m_eta = p_m_eta + l.^2.*omega^2.* conj( ...
                     squeeze(x0.u0(l+1,:))) .* ...
                     squeeze(u(i-1,(j-l)+1,:)).';
-                 u2_tt(j+1,:) =  u2_tt(j+1,:) + conj(...
+                
+                u2_tt(j+1,:) =  u2_tt(j+1,:) + conj(...
                     squeeze(x0.u0(l+1,:)) .* ...
                     squeeze(x0.u0((j-l)+1,:)));
             end
@@ -89,17 +90,19 @@ for i=1:N
             % ---------- Second sum ----------
             for r = 0:((N-1)-j)
                 p_m_eta = p_m_eta + (2.*r + j).^2.* (...
-                    x0.u0((r+j)+1,:).* ...
-                    conj(squeeze(squeeze(u(i-1,r+1,:)).')) + ...
-                    (squeeze(u(i-1,r+1,:)).').*(r.^2) .* ...
-                    conj(squeeze(x0.u0((r+j)+1,:))).*(r+j).^2 );
+                    x0.u0(r+1,:).* ...
+                    conj(squeeze(squeeze(u(i-1,(r+j)+1,:)).')).*(r+j).^2 + ...
+                    (squeeze(u(i-1,r+1,:)).').* ...
+                    conj(squeeze(x0.u0(j+r+1,:))).*r.^2 );
+
                 u2_tt(j+1,:) = u2_tt(j+1,:) + 2 * ...
                     conj(squeeze(x0.u0(r+1,:))) .* ...
                     squeeze(x0.u0((r+j)+1,:));
             end
 
         end
-        F(j+1,:) = -x0.eta0.'.*(p_m_eta).*j^2.*conj(x0.kappa0(:,j+1).').*1./x0.b0.'; % et0 part (the only one in the adjoint)
+        cs = 1./(x0.s0.' - 1i.*j.*omega);
+        F(j+1,:) = -x0.eta0.'.*(p_m_eta).*cs; % et0 part (the only one in the adjoint)
         F(j+1,elements.boundaryIdx) = 0; % just for safety
         % the boundary observation does not need to be scaled as we use the
         % normalised system!
@@ -112,10 +115,11 @@ end
 db_adjoint = zeros(size(squeeze(u(N,:,:))));
 ds_adjoint = zeros(size(squeeze(u(N,:,:))));
 deta_adjoint = zeros(size(squeeze(u(N,:,:))));
-for j=1:N
-    db_adjoint(j,:) = -j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j,:)).* squeeze(u(N,j,:)).';
-    ds_adjoint(j,:) = -1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j,:)) .* squeeze(u(N,j,:)).';
-    deta_adjoint(j,:) = j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j,:) .* squeeze(u(N,j,:)).';
+
+for j=0:(N-1)
+    db_adjoint(j+1,:) = j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j+1,:)).* squeeze(u(N,j+1,:)).';
+    ds_adjoint(j+1,:) = 1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j+1,:)) .* squeeze(u(N,j+1,:)).';
+    deta_adjoint(j+1,:) = -j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j+1,:) .* squeeze(u(N,j+1,:)).';
 end
 
 

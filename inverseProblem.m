@@ -2,9 +2,9 @@ clear all
 
 % specify our reference states
 f1 = 10;    % 10 Hz
-f2 = 20;    % 20 Hz             
-omega1 = 2*pi*f1;     
-omega2 = 2*pi*f2;     
+f2 = 20;    % 20 Hz
+omega1 = 2*pi*f1;
+omega2 = 2*pi*f2;
 
 u1 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -13,7 +13,7 @@ u3 = @(t,x,y) 2 .* u1(t,x,y);
 u1grad = @(t,x,y)  cat(3,...
     (2.*x).* (cos(omega1 .* t) + 2), ...
     (2.*y).* (cos(omega1 .* t) + 2));
-u1F = @(x,y) 1./2.*(x.^2 + y.^2 + 1); 
+u1F = @(x,y) 1./2.*(x.^2 + y.^2 + 1);
 u1C = @(x,y) (x.^2 + y.^2 + 1) .* 2;
 u1Fgrad = @(x,y) cat(3,...
     2 .* x, ...
@@ -55,10 +55,10 @@ beta = 0;   % this is important check paper for clarification
 
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
-diffusivity = 0.005;
+diffusivity = 0.5;
 values = [5]; % B/A of phantoms
 radii = [0.05];
-diffusivityPhantoms = [0.05]; % this allows to adjust the diffusivity for the phantoms
+diffusivityPhantoms = [0.3]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0];
 
 massDensity = 1000; %kg/m^3
@@ -76,10 +76,10 @@ s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diff
 
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
 
-% the complex wavenumber, here we compute the square wave number 
+% the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
 
-% since u^0_j  does not need to solve the PDE,... 
+% since u^0_j  does not need to solve the PDE,...
 % construct the boundary excitations (same source just with different
 % frequency
 
@@ -148,7 +148,7 @@ for j=1:N
 
     measurement_u2_harmonics(j,measurementPointsIdx) = squeeze(U2(N,j,measurementPointsIdx)).';
 
-measurement_u3_harmonics(j,measurementPointsIdx) = squeeze(U3(N,j,measurementPointsIdx)).';
+    measurement_u3_harmonics(j,measurementPointsIdx) = squeeze(U3(N,j,measurementPointsIdx)).';
 end
 
 
@@ -225,8 +225,8 @@ Gy = (Mmap' * (abs(area).*Gy_elem)) ./ weights;
 % at x0 = (s^0, b^0, 0), where s^0, b^0 are space constant functions
 % for finer triangular meshes (high accuracy) these can be precomputed and
 % stored to speed up computation
-s0 = 500.*ones(size(s));
-b0 = 150.*ones(size(b));
+s0 = mean(s).*ones(size(s));
+b0 = mean(b).*ones(size(b));;
 eta0 = zeros(size(eta));
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
@@ -307,7 +307,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 
-%% 
+%%
 % u0 is just a reference state - for the frozen Newton method
 % x0 holds all the reference states and the respective initial values (all
 % the same for each of the reference states)
@@ -323,16 +323,16 @@ x0.refState_3.u0 = 2*u0sampled;
 x0.refState_3.laplaceu0 = 2*laplaceu0;
 x0.refState_3.kappa0 = squeeze(kappasq0(:,:,3));
 
-x0.refState_1.s0 = mean(s.*0.7).*ones(size(s));
-x0.refState_1.b0 = mean(b.*0.7).*ones(size(s));
+x0.refState_1.s0 = s0;
+x0.refState_1.b0 = b0;
 x0.refState_1.eta0 = eta0;
 
-x0.refState_2.s0 = mean(s.*0.7).*ones(size(s));
-x0.refState_2.b0 = mean(b.*0.7).*ones(size(s));
+x0.refState_2.s0 = s0;
+x0.refState_2.b0 = b0;
 x0.refState_2.eta0 = eta0;
 
-x0.refState_3.s0 = mean(s.*0.7).*ones(size(s));
-x0.refState_3.b0 = mean(b.*0.7).*ones(size(s));
+x0.refState_3.s0 = s0;
+x0.refState_3.b0 = b0;
 x0.refState_3.eta0 = eta0;
 
 % the differences
@@ -356,12 +356,12 @@ residual_3 = zeros(size(squeeze(U1(N,:,:))));
 residual_2 = zeros(size(squeeze(U1(N,:,:))));
 
 % start with x0
-xn = x0;;
+xn = x0;
 % F_1 (x_n^\delta)
 % reconstruct kappa for x_n as it depends on s and b
 % kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
 
-[~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma,  xn.refState_1.kappa0, squeeze(excitationsReferenceState(:,:,1)), xn.eta0, xn.b0, nIter, N, 10^(-12));
+[~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma,  xn.refState_1.kappa0, squeeze(excitationsReferenceState(:,:,1)), xn.refState_1.eta0, xn.refState_1.b0, nIter, N, 10^(-12));
 
 % r_1:= h^\delta_1 - F_1 (x_n^\delta)
 residual_1(:,measurementPointsIdx) = squeeze(U1(N,:,measurementPointsIdx) - Un_1(N,:,measurementPointsIdx));
@@ -380,7 +380,7 @@ db_eta_t_1 = calcSolution(timeMesh, deta_a, omega1);
 db_eta_int_1 = sum(db_eta_t_1 .* timeMesh(2) - timeMesh(1),1); % TODO: use trapezoid rule1
 
 %%
-[~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, xn.refState_2.kappa0, squeeze(excitationsReferenceState(:,:,2)), xn.eta0, xn.b0, nIter, N, 10^(-12));
+[~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, xn.refState_2.kappa0, squeeze(excitationsReferenceState(:,:,2)), xn.refState_2.eta0, xn.refState_2.b0, nIter, N, 10^(-12));
 residual_2(:,measurementPointsIdx) = squeeze(U2(N,:,measurementPointsIdx) - Un_2(N,:,measurementPointsIdx));
 
 [~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
@@ -396,7 +396,7 @@ db_eta_int_2 = sum(db_eta_t_2 .* timeMesh(2) - timeMesh(1),1); % TODO: use trape
 
 
 %%
-[~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3.kappa0, squeeze(excitationsReferenceState(:,:,3)), xn.eta0, xn.b0, nIter, N, 10^(-12));
+[~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3.kappa0, squeeze(excitationsReferenceState(:,:,3)), xn.refState_3.eta0, xn.refState_3.b0, nIter, N, 10^(-12));
 residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
 
 [~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, residual_3, nIter, N);
@@ -444,13 +444,13 @@ for newtonIter = 1:newtonIterations
     residual_3(:,measurementPointsIdx) = squeeze(U3(N,:,measurementPointsIdx) - Un_3(N,:,measurementPointsIdx));
 
     %K^*(h  - F(xn))
-    [~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
+    [~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, -residual_1, nIter, N);
     [db_1, ds_1, deta_1] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
 
-    [~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
+    [~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, -residual_2, nIter, N);
     [db_2, ds_2, deta_2] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega2);
 
-    [~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, residual_3, nIter, N);
+    [~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, -residual_3, nIter, N);
     [db_3, ds_3, deta_3] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega1);
     rhs = xn;
     rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0 - xn.refState_1.eta0);
@@ -497,7 +497,7 @@ end
 %%
 point = [0.0;0.05];
 
-[v,idx] = min(sum((elements.points - point(:)').^2,2)); 
+[v,idx] = min(sum((elements.points - point(:)').^2,2));
 
 node = [elements.points(idx,1);elements.points(idx,2)];
 

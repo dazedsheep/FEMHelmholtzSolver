@@ -72,8 +72,8 @@ for i=1:N
         % index 1 is the zero-th solution
         if i>1 && j>0
             % ---------- First sum ----------
-            % sum_{l=1}^j u_l * u_{j-l}
-            for l = 1:j
+            % sum_{l=0}^j u_l * u_{j-l}
+            for l = 0:j
                 p_m = p_m + ...
                     squeeze(u(i-1,l+1,:)).' .* ...
                     squeeze(u(i-1,(j-l)+1,:)).';
@@ -88,7 +88,7 @@ for i=1:N
             end
 
         end
-
+        
         F(j+1,:) = -j^2.*kappa(:,j+1).*1./(2.*b).*f.*p_m.' + excitation(:, j+1);
         F(j+1,elements.boundaryIdx) = 0;
 
