@@ -1,4 +1,5 @@
 function [val] = calcInnerProductParameters(a,b, elements)
+
 % compute the inner product on the product space and the parameter spaces
 [~, a1_eta] = integrate_fun_trimesh(elements.opoints, elements.otri, (a.refState_1.eta0 .* b.refState_1.eta0).');
 [~, a1_s]   = integrate_fun_trimesh(elements.opoints, elements.otri, (a.refState_1.s0 .* b.refState_1.s0).');

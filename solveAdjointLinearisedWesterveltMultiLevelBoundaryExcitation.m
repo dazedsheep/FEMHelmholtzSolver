@@ -1,4 +1,4 @@
-function [i, u, F, db_adjoint, ds_adjoint, deta_adjoint] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, x0, yobs, nIterations, nHarmonics)
+function [i, u, F] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega, beta, gamma, x0, yobs, nIterations, nHarmonics)
 % yobs has to be defined on the hole of \overline{\Omega}, just fill stuff
 % with 0
 n = size(elements.points,1);
@@ -81,46 +81,31 @@ for i=1:N
                 p_m_eta = p_m_eta + l.^2.*omega^2.* conj( ...
                     squeeze(x0.u0(l+1,:))) .* ...
                     squeeze(u(i-1,(j-l)+1,:)).';
-                
-                u2_tt(j+1,:) =  u2_tt(j+1,:) + conj(...
-                    squeeze(x0.u0(l+1,:)) .* ...
-                    squeeze(x0.u0((j-l)+1,:)));
             end
 
             % ---------- Second sum ----------
-            for r = 0:((N-1)-j)
-                p_m_eta = p_m_eta + (2.*r + j).^2.* (...
-                    x0.u0(r+1,:).* ...
-                    conj(squeeze(squeeze(u(i-1,(r+j)+1,:)).')).*(r+j).^2 + ...
-                    (squeeze(u(i-1,r+1,:)).').* ...
-                    conj(squeeze(x0.u0(j+r+1,:))).*r.^2 );
-
-                u2_tt(j+1,:) = u2_tt(j+1,:) + 2 * ...
-                    conj(squeeze(x0.u0(r+1,:))) .* ...
-                    squeeze(x0.u0((r+j)+1,:));
+             for r = j:2:(2*(nHarmonics-1) - j)
+                minusidx = (r-j)/2;
+                plusidx = (r+j)/2;
+                p_m_eta = p_m_eta + r.^2.* (...
+                    x0.u0(minusidx+1,:).* ...
+                    conj(squeeze(squeeze(u(i-1,(plusidx)+1,:)).')).*(plusidx).^2 + ...
+                    (squeeze(u(i-1,minusidx+1,:)).').* ...
+                    conj(squeeze(x0.u0(plusidx+1,:))).*minusidx.^2 );
             end
 
         end
-        cs = 1./(x0.s0.' - 1i.*j.*omega);
-        F(j+1,:) = -x0.eta0.'.*(p_m_eta).*cs; % et0 part (the only one in the adjoint)
+        cs = 1./(x0.s0.' + 1i.*j.*omega);
+        F(j+1,:) = -x0.eta0.'.*conj(p_m_eta).*cs; % et0 part (the only one in the adjoint)
         F(j+1,elements.boundaryIdx) = 0; % just for safety
         % the boundary observation does not need to be scaled as we use the
         % normalised system!
-        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*conj(x0.kappa0(:,j+1)), beta, F(j+1,:).', yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*x0.kappa0(:,j+1), beta, F(j+1,:).', conj(yobs(j+1,:)).', n, K, rowK, colK, M_t, tBM);
     end
 
 end
 
-% compute the adjoint for the params
-db_adjoint = zeros(size(squeeze(u(N,:,:))));
-ds_adjoint = zeros(size(squeeze(u(N,:,:))));
-deta_adjoint = zeros(size(squeeze(u(N,:,:))));
-
-for j=0:(N-1)
-    db_adjoint(j+1,:) = j.^2.*omega.^2./(x0.s0.' - 1i.*j.*omega).* conj(x0.u0(j+1,:)).* squeeze(u(N,j+1,:)).';
-    ds_adjoint(j+1,:) = 1./(x0.s0.' - 1i.*j.*omega).* conj(x0.laplaceu0(j+1,:)) .* squeeze(u(N,j+1,:)).';
-    deta_adjoint(j+1,:) = -j.^2.*omega.^2./(2.*(x0.s0.' - 1i.*j.*omega)).* u2_tt(j+1,:) .* squeeze(u(N,j+1,:)).';
-end
-
+% the resulting adjoint state needs to be conjugated since S^*(f,g) =
+% \overline{S(\overline{f},\overline{g})}
 
 end

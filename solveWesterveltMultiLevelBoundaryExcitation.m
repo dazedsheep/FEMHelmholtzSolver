@@ -81,10 +81,12 @@ for i=1:N
 
             % ---------- Second sum ----------
             % 2 * sum_{r=0}^{N-1-j} conj(u_r) * u_{r+j}
-            for r = 0:((N-1)-j)
+             for r = j:2:(2*(nHarmonics-1) - j)
+                minusidx = (r-j)/2;
+                plusidx = (r+j)/2;
                 p_m = p_m + 2 * ...
-                    conj(squeeze(u(i-1,r+1,:)).') .* ...
-                    squeeze(u(i-1,(r+j)+1,:)).';
+                    conj(squeeze(u(i-1,minusidx+1,:)).') .* ...
+                    squeeze(u(i-1,plusidx+1,:)).';
             end
 
         end

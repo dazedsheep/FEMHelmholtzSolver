@@ -1,4 +1,4 @@
-function [y] = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, omega, nIterations, nHarmonics)
+function [y] = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, omega, nIterations, nHarmonics, referenceStates)
 % this is the implementation of the operator A*A + P*P + alpha_n
 N=nHarmonics;
 nIter = nIterations;
@@ -19,9 +19,9 @@ residual_1(:,elements.measurementPointsIdx) = squeeze(DU_1(N,:,elements.measurem
 % difference, all the conjugation is handled by the function itself
 %
 % j = 1, K^*(K(x_n))
-[~, Uadj_1, Fadj_1, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(1), beta, gamma, x0.refState_1, residual_1, nIter, N);
+[~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(1), beta, gamma, x0.refState_1, residual_1, nIter, N);
 
-[db_int_1, ds_int_1, deta_int_1] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega(1));
+[db_int_1, ds_int_1, deta_int_1] = calcAdjointStates(conj(squeeze(Uadj_1(N,:,:))), omega(1), timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
 
 %%
 % j = 2, K(x_n)
@@ -31,9 +31,9 @@ dx.db = xn.refState_2.b0;
 [~, DU_2, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, dx, nIter, N, false);
 residual_2(:,elements.measurementPointsIdx) = squeeze(DU_2(N,:,elements.measurementPointsIdx));
 % j = 2, K^*(K(x_n))
-[~, Uadj_2, Fadj_2, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, residual_2, nIter, N);
+[~, Uadj_2, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, residual_2, nIter, N);
 
-[db_int_2, ds_int_2, deta_int_2] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega(2));
+[db_int_2, ds_int_2, deta_int_2] = calcAdjointStates(conj(squeeze(Uadj_2(N,:,:))), omega(2), timeMesh, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
 %%
 % j = 3, K(x_n)
@@ -43,9 +43,9 @@ dx.db = xn.refState_3.b0;
 [~, DU_3, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(3), beta, gamma, x0.refState_3, dx, nIter, N, false);
 residual_3(:,elements.measurementPointsIdx) = squeeze(DU_3(N,:,elements.measurementPointsIdx));
 % j = 3, K^*(K(x_n))
-[~, Uadj_3, Fadj_3, db_a, ds_a, deta_a] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(3), beta, gamma, x0.refState_3, residual_3, nIter, N);
+[~, Uadj_3, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(3), beta, gamma, x0.refState_3, residual_3, nIter, N);
 
-[db_int_3, ds_int_3, deta_int_3] = calcAdjointParameterStates(db_a, ds_a, deta_a, timeMesh, omega(3));
+[db_int_3, ds_int_3, deta_int_3] = calcAdjointStates(conj(squeeze(Uadj_3(N,:,:))), omega(3), timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
 
 % we do not need P*P
 %%
@@ -62,6 +62,7 @@ y.refState_2.b0     = db_int_2 + alpha.* xn.refState_2.b0;
 y.refState_3.eta0   = deta_int_3 + alpha.* xn.refState_3.eta0;
 y.refState_3.s0     = ds_int_3 + alpha.* xn.refState_3.s0;
 y.refState_3.b0     = db_int_3 + alpha.* xn.refState_3.b0;
+
 
 end
 
