@@ -42,7 +42,7 @@ timeMesh = linspace(0,1/f1,1/timeMeshh - 1);
 timeMeshh = timeMesh(2) - timeMesh(1); % careful this is the time diff!
 
 % our domain
-bcenter = [0,0];
+bcenter = [0,0.1];
 brad = 0.2;
 domain = [bcenter, brad];
 
