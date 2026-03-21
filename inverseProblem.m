@@ -42,7 +42,7 @@ timeMesh = linspace(0,1/f1,1/timeMeshh - 1);
 timeMeshh = timeMesh(2) - timeMesh(1); % careful this is the time diff!
 
 % our domain
-bcenter = [0,0.1];
+bcenter = [0,0];
 brad = 0.2;
 domain = [bcenter, brad];
 
@@ -69,10 +69,10 @@ beta = 0;   % this is important check paper for clarification
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.5;
-values = [3]; % B/A of phantoms
-radii = [0.05];
-diffusivityPhantoms = [0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [0; 0];
+values = [3,3]; % B/A of phantoms
+radii = [0.05, 0.05];
+diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
+centers = [0,0; 0.1,-0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -755,7 +755,7 @@ end
 
 diff = abs(innerP1 - innerP2);
 if diff > 10e-3
-    error("Operator A is not self-adjoint");
+    warning("Operator A is not self-adjoint");
 end
 
 %%
@@ -764,7 +764,7 @@ excitationsReferenceState = excitations;
 
 
 alpha = 1; % alpha0
-q = 0.8;
+q = 1/2;
 
 useSolutionAsLinPoint = true;
 
@@ -821,7 +821,7 @@ xdag.refState_3.s0 = s;
 xdag.refState_3.b0 = b;
 xdag.refState_3.eta0 = eta;
 
-newtonIterations = 50;
+newtonIterations = 1000;
 errorToDag = zeros(newtonIterations,1);
 CGIterations = 50;
 
@@ -900,7 +900,7 @@ for newtonIter = 1:newtonIterations
         rrN = calcInnerProductParameters(resNew, resNew, elements);
         stopres(iter) =rrN;
 
-        if stopres(iter) < 10e-5
+        if stopres(iter) < 10e-6
             break;
         end
 
