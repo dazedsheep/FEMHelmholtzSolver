@@ -90,6 +90,7 @@ for i=1:N
             for r = j:2:(2*(nHarmonics-1) - j)
                 minusidx = (r-j)/2;
                 plusidx = (r+j)/2;
+
                 p_m_eta = p_m_eta + ...
                     conj(x0.u0(minusidx+1,:)) .* ...
                     squeeze(squeeze(u(i-1,plusidx+1,:)).') + ...
@@ -109,11 +110,11 @@ for i=1:N
         F(j+1,:) = F(j+1, :) - dx.deta.'.*cf./2.*p_m; % deta part (we use the precomputed stuff from u0, this takes into account everything)
         F(j+1,:) = F(j+1, :) + dx.db.'.*cf.*x0.u0(j+1,:); %db part
         if (linPointIsSolution == false)
-           F(j+1,:) = F(j+1, :) + dx.ds.'.*cs.*(-x0.laplaceu0(j+1,:)); %ds part 
+           F(j+1,:) = F(j+1, :) + dx.ds.'.*cs.*(x0.laplaceu0(j+1,:)); %ds part 
         else
            F(j+1,:) = F(j+1, :) + dx.ds.'.*cs.*(-x0.kappa0(:,j+1).'.*j^2.*x0.u0(j+1,:) - x0.F(j+1,:)); %ds part (here F(j+1,:) is correct)
         end
-        F(j+1,elements.boundaryIdx)  = 0;
+        F(j+1,elements.boundaryIdx) = 0;
 
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*x0.kappa0(:,j+1), beta, F(j+1,:).', dx.excitation(:,j+1), n, K, rowK, colK, M_t, tBM);
 

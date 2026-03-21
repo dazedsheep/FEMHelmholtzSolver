@@ -10,12 +10,6 @@ k = (0:Nh-1).';
 % Time exponentials (Nt x Nh)
 E = exp(1i * omega * timeMesh(:) * k.');
 
-% Zero mode
-u = real(E(:,1) * U(1,:));
-
-% Higher harmonics
-if Nh > 1
-    u = u + 2.*real(E(:,2:end) * U(2:end,:));
-end
+u = real(E(:,1:end) * U(1:end,:));
 
 end

@@ -95,12 +95,12 @@ for i=1:N
             end
 
         end
-        cs = 1./(x0.s0.' + 1i.*j.*omega);
+        cs = 1./(x0.s0.' - 1i.*j.*omega);
         F(j+1,:) = -x0.eta0.'.*conj(p_m_eta).*cs; % et0 part (the only one in the adjoint)
-        F(j+1,elements.boundaryIdx) = 0; % just for safety
+        F(j+1,elements.boundaryIdx) = 0;
         % the boundary observation does not need to be scaled as we use the
         % normalised system!
-        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, j^2.*x0.kappa0(:,j+1), beta, F(j+1,:).', conj(yobs(j+1,:)).', n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).',yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
     end
 
 end

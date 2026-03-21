@@ -4,7 +4,6 @@ function [robinBoundary] = calcRobinBoundary( ...
 Nt = size(u,1);
 Np = size(u,2);
 
-
 % compute gradient for ALL time steps at once
 Ux = (Gx * u.').';
 Uy = (Gy * u.').';
