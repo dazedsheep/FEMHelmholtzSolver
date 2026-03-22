@@ -6,10 +6,10 @@ s_adj = adjointState.*u0Laplace;
 s_adj = trapz(timeMesh, s_adj,1).';
 
 b_adj = adjointState.*u0tt;
-b_adj = -trapz(timeMesh, b_adj,1).';
+b_adj = trapz(timeMesh, b_adj,1).';
 
 eta_adj = adjointState.*u0Sqtt;
-eta_adj = trapz(timeMesh, eta_adj,1).';
+eta_adj = -trapz(timeMesh, eta_adj,1).';
 
 end
 

@@ -91,7 +91,7 @@ for i=1:N
                     x0.u0(minusidx+1,:).* ...
                     conj(squeeze(squeeze(u(i-1,(plusidx)+1,:)).')).*(plusidx).^2 + ...
                     (squeeze(u(i-1,minusidx+1,:)).').* ...
-                    conj(squeeze(x0.u0(plusidx+1,:))).*minusidx.^2 );
+                    conj(squeeze(x0.u0(plusidx+1,:))).*minusidx.^2);
             end
 
         end
@@ -100,12 +100,10 @@ for i=1:N
         F(j+1,elements.boundaryIdx) = 0;
         % the boundary observation does not need to be scaled as we use the
         % normalised system!
-        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).',yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).',conj(cs).'.*yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
     end
 
 end
 
-% the resulting adjoint state needs to be conjugated since S^*(f,g) =
-% \overline{S(\overline{f},\overline{g})}
 
 end
