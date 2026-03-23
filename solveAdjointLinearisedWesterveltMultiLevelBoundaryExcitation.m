@@ -64,7 +64,6 @@ bcol = elements.bedges(:,[1 1 2 2]).';
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
 
 F = zeros(N, n);
-u2_tt = zeros(N, n);
 for i=1:N
     for j=0:min((i-1),nHarmonics-1)
         p_m_eta = zeros(1,n);
@@ -98,8 +97,7 @@ for i=1:N
         cs = 1./(x0.s0.' - 1i.*j.*omega);
         F(j+1,:) = -x0.eta0.'.*conj(p_m_eta).*cs; % et0 part (the only one in the adjoint)
         F(j+1,elements.boundaryIdx) = 0;
-        % the boundary observation does not need to be scaled as we use the
-        % normalised system!
+
         u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).',conj(cs).'.*yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
     end
 
