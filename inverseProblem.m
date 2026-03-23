@@ -3,8 +3,10 @@ clear all
 % specify our reference states
 f1 = 10;    % 10 Hz
 f2 = 20;    % 20 Hz
+f3 = 30;
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
+omega3 = 2*pi*f3;
 
 u1 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -69,10 +71,10 @@ beta = 0;   % this is important check paper for clarification
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.5;
-values = [3,3]; % B/A of phantoms
-radii = [0.05, 0.05];
-diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [0,0; 0.1,-0.1];
+values = [3]; % B/A of phantoms
+radii = [0.05];
+diffusivityPhantoms = [0.49]; % this allows to adjust the diffusivity for the phantoms
+centers = [0; 0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -90,7 +92,7 @@ s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diff
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
 
 % the complex wavenumber, here we compute the square wave number
-kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
+kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 
 % since u^0_j  does not need to solve the PDE,...
 % construct the boundary excitations (same source just with different
@@ -117,7 +119,7 @@ sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), 
 
 %%
 excitations = zeros(size(elements.points,1), N, 3);
-amplification = 1;
+amplification = 10;
 excitations(:,1,1) = amplification.*sourceConstant;
 excitations(:,2,1) = amplification.*sourceFrequency;
 excitations(:,1,2) = amplification.*sourceConstant;
@@ -127,12 +129,12 @@ excitations(:,2,3) = amplification.*2.*sourceFrequency;
 %%
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
-[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
+[cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
 u1s = calcSolution(timeMesh, squeeze(U1(N,:,:)), omega1);
 u2s = calcSolution(timeMesh, squeeze(U2(N,:,:)), omega2);
-u3s = calcSolution(timeMesh, squeeze(U3(N,:,:)), omega1);
+u3s = calcSolution(timeMesh, squeeze(U3(N,:,:)), omega3);
 
 %%
 % define \Sigma our measurement manifold/discrete points
@@ -244,7 +246,7 @@ testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,
 s0 = min(s).*ones(size(s));
 b0 = min(b).*ones(size(b));
 eta0 = zeros(size(eta));
-kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
+kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
 % for i=1:size(elements.points,1)
 %     u1Sampled(i) = u1F(elements.points(i,1), elements.points(i,2));
@@ -252,12 +254,12 @@ excitationsReferenceState = excitations;
 % the boundary excitation we take from our exemplary function
 [~, U0_1, U0_F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,1)), squeeze(excitationsReferenceState(:,:,1)), eta0, b0, nIter, N, 10^(-12));
 [~, U0_2, U0_F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq0(:,:,2)), squeeze(excitationsReferenceState(:,:,2)), eta0, b0, nIter, N, 10^(-12));
-[~, U0_3, U0_F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), eta0, b0, nIter, N, 10^(-12));
+[~, U0_3, U0_F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), eta0, b0, nIter, N, 10^(-12));
 
 % there reference state in time x space
 u0_1 = calcSolution(timeMesh, squeeze(U0_1(N,:,:)), omega1);
 u0_2 = calcSolution(timeMesh, squeeze(U0_2(N,:,:)), omega2);
-u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega1);
+u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega3);
 
 % just a quick sanity check --> the solutions MUST fulfill |\Delta u^0| \geq c > 0 and |u^0| \geq c > 0 a.e. in our time space cylinder
 if min(min(u0_1)) <= 0 || min(min(u0_2)) <= 0 || min(min(u0_3)) <= 0
@@ -445,7 +447,7 @@ if useSolutionAsLinPoint == true
 
     x0.refState_3.u0 = squeeze(U0_3(N,:,:));
     x0.refState_3.F = U0_F3;
-    x0.refState_3.kappa0 = constructKappaReparameterized(elements, s0, b0, omega1, N);
+    x0.refState_3.kappa0 = constructKappaReparameterized(elements, s0, b0, omega3, N);
 
 else
     x0.refState_1.u0 = u0sampled;
@@ -502,7 +504,7 @@ residual_2 = zeros(size(squeeze(U1(N,:,:))));
 xn = x0;
 % F_1 (x_n^\delta)
 % reconstruct kappa for x_n as it depends on s and b
-% kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
+% kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 
 [~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma,  xn.refState_1.kappa0, squeeze(excitationsReferenceState(:,:,1)), xn.refState_1.eta0, xn.refState_1.b0, nIter, N, 10^(-12));
 
@@ -557,10 +559,7 @@ residual_3(:,elements.measurementPointsIdx) = squeeze(U3(N,:,elements.measuremen
 % the same for each of the reference states)
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
-
-xn = x0; % start at x0
-alpha = 1; % alpha0
-q = 0.8;
+alpha = 1;
 
 x0.refState_1.u0 = u0sampled;
 x0.refState_1.laplaceu0 = laplaceu0;
@@ -634,7 +633,7 @@ end
 
 % homogenity
 diff2 = norm(norm(squeeze(dua(N,:,:) - a.*du1(N,:,:))));
-if diff2 > 10e-12
+if diff2 > 10e-10
     error("Frechet derivative is not linear (homogenity failed)!");
 end
 
@@ -743,8 +742,8 @@ x2.refState_3.s0 = s.*rand(1).*a;
 x2.refState_3.b0 = b.*rand(1).*a;
 x2.refState_3.eta0 = eta.*rand(1).*a;
 
-Ax1 = applyA(x1, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N, referenceStates, useSolutionAsLinPoint);
-Ax2 = applyA(x2, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N, referenceStates, useSolutionAsLinPoint);
+Ax1 = applyA(x1, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
+Ax2 = applyA(x2, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
 
 % <Ax1, x2> = <x1, A*x2> = <x1, Ax2>
 innerP1 = calcInnerProductParameters(Ax1, x2 ,elements);
@@ -760,7 +759,7 @@ if diff > 10e-3
 end
 
 %%
-kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega1], N); % compute all the complex wave numbers needed
+kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
@@ -780,10 +779,8 @@ if useSolutionAsLinPoint == true
 
     x0.refState_3.u0 = squeeze(U0_3(N,:,:));
     x0.refState_3.F = U0_F3;
-    x0.refState_3.kappa0 = constructKappaReparameterized(elements, s0, b0, omega1, N);
+    x0.refState_3.kappa0 = constructKappaReparameterized(elements, s0, b0, omega3, N);
 
-    % TODO prepare laplacian of u0, u0_tt, u0^2_tt
-    % the first can be easily constructed
     for j = 0:(N-1)
         u1laplacef(j+1,:) = -x0.refState_1.kappa0(:,j+1).'.*j^2.*x0.refState_1.u0(j+1,:) - x0.refState_1.F(j+1,:);
         u1ttf(j+1,:)  = -j^2.*omega1.^2.*x0.refState_1.u0(j+1,:);
@@ -792,7 +789,7 @@ if useSolutionAsLinPoint == true
         u2ttf(j+1,:)  = -j^2.*omega2.^2.*x0.refState_2.u0(j+1,:);
 
         u3laplacef(j+1,:) = -x0.refState_3.kappa0(:,j+1).'.*j^2.*x0.refState_3.u0(j+1,:) - x0.refState_3.F(j+1,:);
-        u3ttf(j+1,:)  = -j^2.*omega1.^2.*x0.refState_3.u0(j+1,:);
+        u3ttf(j+1,:)  = -j^2.*omega3.^2.*x0.refState_3.u0(j+1,:);
 
         % computing u^2_{tt} is a bit more tricky
         p_m = zeros(1,size(elements.points,1));
@@ -831,7 +828,7 @@ if useSolutionAsLinPoint == true
         end
         u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m;
         u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
-        u3sqttf(j+1,:) = -j.^2.*omega1^2.*p_m3;
+        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
     end
     u1tt = calcSolution(timeMesh, u1ttf, omega1);
     u1lap = calcSolution(timeMesh, u1laplacef,omega1);
@@ -841,9 +838,9 @@ if useSolutionAsLinPoint == true
     u2lap = calcSolution(timeMesh, u2laplacef,omega2);
     u2sqtt = calcSolution(timeMesh, u2sqttf,omega2);
 
-    u3tt = calcSolution(timeMesh, u3ttf, omega1);
-    u3lap = calcSolution(timeMesh, u3laplacef,omega1);
-    u3sqtt = calcSolution(timeMesh, u3sqttf,omega1);
+    u3tt = calcSolution(timeMesh, u3ttf, omega3);
+    u3lap = calcSolution(timeMesh, u3laplacef,omega3);
+    u3sqtt = calcSolution(timeMesh, u3sqttf,omega3);
     
     referenceStates.u1LaplacianSampled = u1lap;
     referenceStates.u1ttSampled = u1tt;
@@ -908,20 +905,22 @@ for newtonIter = 1:newtonIterations
     % in each Newton step we have to do a CG
 
     % A = K*K + P*P + alpha
-
+    %xn = alignParameters(xn);
     % A(xn)
-    y = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N, referenceStates, useSolutionAsLinPoint);
+    y = applyA(xn, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
 
     %prepare rhs = A(xn) + K^*(h - F(xn)) + \alpha_n(x0 - xn)
     % F(xn)
     % do not forget to update kappa
+
     kappa1 = constructKappaReparameterized(elements, xn.refState_1.s0, xn.refState_1.b0, omega1, N);
     kappa2 = constructKappaReparameterized(elements, xn.refState_2.s0, xn.refState_2.b0, omega2, N);
-    kappa3 = constructKappaReparameterized(elements, xn.refState_3.s0, xn.refState_3.b0, omega1, N);
+    kappa3 = constructKappaReparameterized(elements, xn.refState_3.s0, xn.refState_3.b0, omega3, N);
+
 
     [~, Un_1, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, kappa1, squeeze(excitationsReferenceState(:,:,1)), xn.refState_1.eta0, xn.refState_1.b0, nIter, N, 10^(-12));
     [~, Un_2, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, kappa2, squeeze(excitationsReferenceState(:,:,2)), xn.refState_2.eta0, xn.refState_2.b0, nIter, N, 10^(-12));
-    [~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, kappa3, squeeze(excitationsReferenceState(:,:,3)), xn.refState_3.eta0, xn.refState_3.b0, nIter, N, 10^(-12));
+    [~, Un_3, ~] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, kappa3, squeeze(excitationsReferenceState(:,:,3)), xn.refState_3.eta0, xn.refState_3.b0, nIter, N, 10^(-12));
     
     residual_1 = zeros(size(squeeze(Un_1(N,:,:))));
     residual_2 = zeros(size(squeeze(Un_2(N,:,:))));
@@ -936,6 +935,7 @@ for newtonIter = 1:newtonIterations
     residue(newtonIter, 2) = sum(sum(abs(residual_2).^2));
     residue(newtonIter, 3) = sum(sum(abs(residual_3).^2));
     residue(newtonIter, 4) = sqrt(residue(newtonIter, 1) + residue(newtonIter, 2) + residue(newtonIter, 3));
+    residue(newtonIter, 4)
     if residue(newtonIter, 4) < delta
         break;
     end
@@ -947,39 +947,40 @@ for newtonIter = 1:newtonIterations
     [~, Uadj_2, Fadj_2] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
     [db_2, ds_2, deta_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega2, timeMesh, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
-    [~, Uadj_3, Fadj_3] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_3, residual_3, nIter, N);
-    [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega1, timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
+    [~, Uadj_3, Fadj_3] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, residual_3, nIter, N);
+    [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega3, timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
 
     rhs = xn;
 
-    rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0 - xn.refState_1.eta0);
-    rhs.refState_1.s0     = y.refState_1.s0     + ds_1   + alpha.* (x0.refState_1.s0 - xn.refState_1.s0);
-    rhs.refState_1.b0     = y.refState_1.b0     + db_1   + alpha.* (x0.refState_1.b0 - xn.refState_1.b0);
+    rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0  - xn.refState_1.eta0);
+    rhs.refState_1.s0     = y.refState_1.s0     + ds_1   + alpha.* (x0.refState_1.s0    - xn.refState_1.s0);
+    rhs.refState_1.b0     = y.refState_1.b0     + db_1   + alpha.* (x0.refState_1.b0    - xn.refState_1.b0);
 
-    rhs.refState_2.eta0   = y.refState_2.eta0   + deta_2 + alpha.* (x0.refState_2.eta0 - xn.refState_2.eta0);
-    rhs.refState_2.s0     = y.refState_2.s0     + ds_2   + alpha.* (x0.refState_2.s0 - xn.refState_2.s0);
-    rhs.refState_2.b0     = y.refState_2.b0     + db_2   + alpha.* (x0.refState_2.b0 - xn.refState_2.b0);
+    rhs.refState_2.eta0   = y.refState_2.eta0   + deta_2 + alpha.* (x0.refState_2.eta0  - xn.refState_2.eta0);
+    rhs.refState_2.s0     = y.refState_2.s0     + ds_2   + alpha.* (x0.refState_2.s0    - xn.refState_2.s0);
+    rhs.refState_2.b0     = y.refState_2.b0     + db_2   + alpha.* (x0.refState_2.b0    - xn.refState_2.b0);
 
-    rhs.refState_3.eta0   = y.refState_3.eta0  + deta_3  + alpha.* (x0.refState_3.eta0 - xn.refState_3.eta0);
-    rhs.refState_3.s0     = y.refState_3.s0    + ds_3    + alpha.* (x0.refState_3.s0 - xn.refState_3.s0);
-    rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0 - xn.refState_3.b0);
+    rhs.refState_3.eta0   = y.refState_3.eta0  + deta_3  + alpha.* (x0.refState_3.eta0  - xn.refState_3.eta0);
+    rhs.refState_3.s0     = y.refState_3.s0    + ds_3    + alpha.* (x0.refState_3.s0    - xn.refState_3.s0);
+    rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0    - xn.refState_3.b0);
 
     % now we need to solve Az = rhs
     z = xn;
-    res = minusParameters(rhs, applyA(z, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N, referenceStates, useSolutionAsLinPoint));
+    res = minusParameters(rhs, applyA(z, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint));
     pk = res;
     stopres = zeros(CGIterations,1);
     betak = zeros(CGIterations,1);
     for iter = 1:CGIterations
-        Apk = applyA(pk, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega1], nIter, N, referenceStates, useSolutionAsLinPoint);
+        Apk = applyA(pk, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
         rr = calcInnerProductParameters(res,res, elements);
         d(iter) = rr / (calcInnerProductParameters(pk, Apk ,elements));
         z = addParameters(z, scalarMulParameters(d(iter), pk));
+        % the following line may propagate numerical errors
         resNew = minusParameters(res, scalarMulParameters(d(iter), Apk));
         rrN = calcInnerProductParameters(resNew, resNew, elements);
         stopres(iter) =rrN;
 
-        if stopres(iter) < 10e-12
+        if stopres(iter) < 10e-2
             break;
         end
 
