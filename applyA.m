@@ -9,8 +9,8 @@ residual_3 = zeros(N,size(elements.points,1));
 
 % j = 1, K(x_n)
 dx.deta = xn.refState_1.eta0;
-dx.ds = xn.refState_1.s0;
-dx.db = xn.refState_1.b0;
+dx.ds   = xn.refState_1.s0;
+dx.db   = xn.refState_1.b0;
 dx.excitation = zeros(size(elements.points,1), N);
 
 [~, DU_1, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(1), beta, gamma, x0.refState_1, dx, nIter, N, useSolutionAsLinPoint);
@@ -26,8 +26,8 @@ residual_1(:,elements.measurementPointsIdx) = squeeze(DU_1(N,:,elements.measurem
 %%
 % j = 2, K(x_n)
 dx.deta = xn.refState_2.eta0;
-dx.ds = xn.refState_2.s0;
-dx.db = xn.refState_2.b0;
+dx.ds   = xn.refState_2.s0;
+dx.db   = xn.refState_2.b0;
 [~, DU_2, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, dx, nIter, N, useSolutionAsLinPoint);
 residual_2(:,elements.measurementPointsIdx) = squeeze(DU_2(N,:,elements.measurementPointsIdx));
 % j = 2, K^*(K(x_n))

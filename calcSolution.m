@@ -1,8 +1,6 @@
 function u = calcSolution(timeMesh, U, omega)
 
-Nt = length(timeMesh);
 Nh = size(U,1);
-Ns = size(U,2);
 
 % Harmonic indices
 k = (0:Nh-1).';
