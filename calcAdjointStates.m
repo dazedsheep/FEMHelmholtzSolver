@@ -3,7 +3,7 @@ function [b_adj, s_adj, eta_adj] = calcAdjointStates(Uadj, omega, timeMesh, u0La
 adjointState = calcSolution(timeMesh, Uadj, omega);
 
 s_adj = adjointState.*u0Laplace;
-s_adj = trapz(timeMesh.', s_adj,1).';
+s_adj = -trapz(timeMesh.', s_adj,1).';
 
 b_adj = adjointState.*u0tt;
 b_adj = trapz(timeMesh.', b_adj,1).';

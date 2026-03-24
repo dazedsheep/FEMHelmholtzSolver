@@ -2,7 +2,7 @@ clear all
 
 % specify our reference states
 f1 = 25;    % 10 Hz
-f2 = 33;    % 20 Hz
+f2 = 43;    % 20 Hz
 f3 = 40;
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
@@ -42,7 +42,7 @@ u3sqtt = @(t,x,y) u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos
 % and the mesh in time
 timeMeshh = 0.01;
 % time domain (lowest frequency determines the duration)
-timeMesh = linspace(0,1/f1,1/timeMeshh - 1);
+timeMesh = linspace(0, 1/f1, 1/timeMeshh - 1);
 % recompute time difference
 timeMeshh = timeMesh(2) - timeMesh(1); % careful this is the time diff!
 
@@ -74,10 +74,10 @@ beta = 0;   % this is important check paper for clarification
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.5;
-values = [3]; % B/A of phantoms
-radii = [0.05];
-diffusivityPhantoms = [0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [0; 0.1];
+values = [3, 3]; % B/A of phantoms
+radii = [0.05,0.05];
+diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
+centers = [0,0; 0.1,-0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -90,6 +90,7 @@ nIter = 6;
 sourceValueDomain = 2; % B/A of domain
 
 eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
+
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
 
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
@@ -417,7 +418,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-xsol = frozenNewtonMethod(elements, timeMesh, U0_1, U0_F1, U0_2, U0_F2, U0_3, U0_F3, s0, b0, eta0, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, true, nIter, N, 1000, 10e-8, 10e-12);
+xsol = frozenNewtonMethod(elements, timeMesh, U0_1, U0_F1, U0_2, U0_F2, U0_3, U0_F3, s0, b0, eta0, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, true, nIter, N, 1000, 10e-10, 10e-12);
 %%
 point = [0.0;0.05];
 
