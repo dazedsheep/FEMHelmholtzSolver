@@ -387,9 +387,51 @@ for i = 1:size(timeMesh,2)
 end
 dn = trapz(timeMesh,a);
 
-%% check the adjoint calculation
+%% check the deviation in ds only 
+perturbationCoeff = 0.7;
+perturbed_s = s.*perturbationCoeff;
+perturbed_b = b0;
+perturbed_eta = eta0;
 
+kappaPerturbed = constructKappaReparameterized(elements, perturbed_s, perturbed_b, omega1, N);
 
+[~, UPert, FPert] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, kappaPerturbed, squeeze(excitationsReferenceState(:,:,1)), perturbed_eta, perturbed_b, nIter, N, 10^(-12));
+
+dx.ds = s - perturbed_s;
+dx.db = b - perturbed_b;
+dx.deta = eta  - perturbed_eta;
+dx.excitation = zeros(size(elements.points,1), N);
+
+xs = x0;
+xs.refState_1.u0 = squeeze(UPert(N,:,:));
+xs.refState_1.F = FPert;
+xs.refState_1.s0 = perturbed_s;
+xs.refState_1.b0 = perturbed_b;
+xs.refState_1.eta0 = perturbed_eta;
+
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, dx, nIter, N, true);
+du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+[~, ldx.ds] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.ds).^2.');
+[~, ldx.db] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.db).^2.');
+[~, ldx.deta] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.deta).^2.');
+
+nm = sqrt(ldx.ds + ldx.db + ldx.deta);
+% for very small pertubations we should have F(x) \approx F(x0)
+diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
+diffU_time = calcSolution(timeMesh, squeeze(diffU), omega1);
+for i = 1:size(timeMesh,2)
+    [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
+end
+dn = trapz(timeMesh,a);
+harmonics = 0:(N-1);
+lapu0 = squeeze(kappasq0(:,:,1)).'.*squeeze(U0_1(N,:,:));
+calcLap0sol = calcSolution(timeMesh, -omega1.^2.*harmonics.'.^2 .* lapu0, omega1);
+% calc also the adjoint state
+residual_1 = zeros(N,size(elements.points,1));
+residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
+[~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, residual_1, nIter, N);
+uadj = calcSolution(timeMesh, squeeze(Uadj_1(N,:,:)), omega1);
+ads = trapz(timeMesh, uadj.*(calcLap0sol));
 
 %% theory tells us that we do not need that u0 is a solution of our PDE
 % prepare the harmonics of our reference states
