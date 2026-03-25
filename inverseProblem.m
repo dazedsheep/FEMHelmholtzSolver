@@ -460,7 +460,138 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-xsol = frozenNewtonMethod(elements, timeMesh, U0_1, U0_F1, U0_2, U0_F2, U0_3, U0_F3, s0, b0, eta0, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, true, nIter, N, 1000, 10e-10, 10e-12);
+useSolutionAsLinPoint = false;
+
+
+if useSolutionAsLinPoint == true
+
+    x0.refState_1.u0 = squeeze(U0_1(N,:,:));
+    x0.refState_1.F = U0_F1;
+    x0.refState_1.kappa0 = constructKappaReparameterized(elements, s0, b0, omega1, N);
+
+    x0.refState_2.u0 = squeeze(U0_2(N,:,:));
+    x0.refState_2.F = U0_F2;
+    x0.refState_2.kappa0 = constructKappaReparameterized(elements, s0, b0, omega2, N);
+
+    x0.refState_3.u0 = squeeze(U0_3(N,:,:));
+    x0.refState_3.F = U0_F3;
+    x0.refState_3.kappa0 = constructKappaReparameterized(elements, s0, b0, omega3, N);
+
+    for j = 0:(N-1)
+        u1laplacef(j+1,:) = -x0.refState_1.kappa0(:,j+1).'.*j^2.*x0.refState_1.u0(j+1,:) - x0.refState_1.F(j+1,:);
+        u1ttf(j+1,:)  = -j^2.*omega1.^2.*x0.refState_1.u0(j+1,:);
+
+        u2laplacef(j+1,:) = -x0.refState_2.kappa0(:,j+1).'.*j^2.*x0.refState_2.u0(j+1,:) - x0.refState_2.F(j+1,:);
+        u2ttf(j+1,:)  = -j^2.*omega2.^2.*x0.refState_2.u0(j+1,:);
+
+        u3laplacef(j+1,:) = -x0.refState_3.kappa0(:,j+1).'.*j^2.*x0.refState_3.u0(j+1,:) - x0.refState_3.F(j+1,:);
+        u3ttf(j+1,:)  = -j^2.*omega3.^2.*x0.refState_3.u0(j+1,:);
+
+        % computing u^2_{tt} is a bit more tricky
+        p_m = zeros(1,size(elements.points,1));
+        p_m2 = zeros(1,size(elements.points,1));
+        p_m3 = zeros(1,size(elements.points,1));
+
+        for l = 0:j
+            p_m = p_m + ...
+                squeeze(x0.refState_1.u0(l+1,:)) .* ...
+                squeeze(x0.refState_1.u0((j-l)+1,:));
+
+            p_m2 = p_m2 + ...
+                squeeze(x0.refState_2.u0(l+1,:)) .* ...
+                squeeze(x0.refState_2.u0((j-l)+1,:));
+
+            p_m3 = p_m3 + ...
+                squeeze(x0.refState_3.u0(l+1,:)) .* ...
+                squeeze(x0.refState_3.u0((j-l)+1,:));
+        end
+
+        % ---------- Second sum ----------
+        % 2 * sum_{r=0}^{N-1-j} conj(u_r) * u_{r+j}
+        for r = j:2:(2*(N-1) - j)
+            minusidx = (r-j)/2;
+            plusidx = (r+j)/2;
+            p_m = p_m + 2 * ...
+                conj(squeeze(x0.refState_1.u0(minusidx+1,:))) .* ...
+                squeeze(x0.refState_1.u0(plusidx+1,:));
+
+            p_m2 = p_m2 + 2 * ...
+                conj(squeeze(x0.refState_2.u0(minusidx+1,:))) .* ...
+                squeeze(x0.refState_2.u0(plusidx+1,:));
+            p_m3 = p_m3 + 2 * ...
+                conj(squeeze(x0.refState_3.u0(minusidx+1,:))) .* ...
+                squeeze(x0.refState_3.u0(plusidx+1,:));
+        end
+        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m;
+        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
+        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
+    end
+    u1tt = calcSolution(timeMesh, u1ttf, omega1);
+    u1lap = calcSolution(timeMesh, u1laplacef,omega1);
+    u1sqtt = calcSolution(timeMesh, u1sqttf,omega1);
+
+    u2tt = calcSolution(timeMesh, u2ttf, omega2);
+    u2lap = calcSolution(timeMesh, u2laplacef,omega2);
+    u2sqtt = calcSolution(timeMesh, u2sqttf,omega2);
+
+    u3tt = calcSolution(timeMesh, u3ttf, omega3);
+    u3lap = calcSolution(timeMesh, u3laplacef,omega3);
+    u3sqtt = calcSolution(timeMesh, u3sqttf,omega3);
+    
+    referenceStates.u1LaplacianSampled = u1lap;
+    referenceStates.u1ttSampled = u1tt;
+    referenceStates.u1sqttSampled = u1sqtt;
+
+    referenceStates.u2LaplacianSampled = u2lap;
+    referenceStates.u2ttSampled = u2tt;
+    referenceStates.u2sqttSampled = u2sqtt;
+
+    referenceStates.u3LaplacianSampled = u3lap;
+    referenceStates.u3ttSampled = u3tt;
+    referenceStates.u3sqttSampled = u3sqtt;
+
+else
+    kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
+
+    x0.refState_1.u0 = u0sampled;
+    x0.refState_1.laplaceu0 = laplaceu0;
+    x0.refState_1.kappa0 = squeeze(kappasq0(:,:,1));
+
+    x0.refState_2.u0 = u0sampled;
+    x0.refState_2.laplaceu0 = laplaceu0;
+    x0.refState_2.kappa0 = squeeze(kappasq0(:,:,2));
+
+    x0.refState_3.u0 = u3Amplitude*u0sampled;
+    x0.refState_3.laplaceu0 = u3Amplitude*laplaceu0;
+    x0.refState_3.kappa0 = squeeze(kappasq0(:,:,3));
+
+    referenceStates.u1LaplacianSampled = u1LaplacianSampled;
+    referenceStates.u1ttSampled = u1ttSampled;
+    referenceStates.u1sqttSampled = u1sqttSampled;
+
+    referenceStates.u2LaplacianSampled = u2LaplacianSampled;
+    referenceStates.u2ttSampled = u2ttSampled;
+    referenceStates.u2sqttSampled = u2sqttSampled;
+
+    referenceStates.u3LaplacianSampled = u3LaplacianSampled;
+    referenceStates.u3ttSampled = u3ttSampled;
+    referenceStates.u3sqttSampled = u3sqttSampled;
+
+end
+
+x0.refState_1.s0 = s0;
+x0.refState_1.b0 = b0;
+x0.refState_1.eta0 = eta0;
+
+x0.refState_2.s0 = s0;
+x0.refState_2.b0 = b0;
+x0.refState_2.eta0 = eta0;
+
+x0.refState_3.s0 = s0;
+x0.refState_3.b0 = b0;
+x0.refState_3.eta0 = eta0;
+
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, 10e-12);
 %%
 point = [0.0;0.05];
 
