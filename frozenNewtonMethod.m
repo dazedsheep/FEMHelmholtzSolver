@@ -95,6 +95,9 @@ for newtonIter = 1:newtonIterations
         res = resNew;
     end
 
+    % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
+    % - z||
+
     % residual in L^2(\Sigma), this residue is not the one we optimise,
     % this is just to check how far we are from the measurement
     [~, residue(newtonIter, 1)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_1).^2,1));
@@ -107,7 +110,7 @@ for newtonIter = 1:newtonIterations
     if residue(newtonIter, 5) < NewtonTol
         break;
     end
-
+    
     % update variables
     xn = z;
     alpha = alpha*q;
