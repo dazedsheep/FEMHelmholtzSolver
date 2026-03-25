@@ -3,39 +3,39 @@ clear all
 % specify our reference states
 f1 = 25;    % 10 Hz
 f2 = 43;    % 20 Hz
-f3 = 40;
+f3 = f1;
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
-omega3 = 2*pi*f1;
-u3Amplitude = 1.4;
-amplification = 1;
+omega3 = 2*pi*f3;
+u3Amplitude = 1.5;
+amplification = 0.5;
 
 
-u1 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
-u2 = @(t,x,y) (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
-u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
+u1 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
+u2 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
+u3 = @(t,x,y) amplification.*u3Amplitude .* u1(t,x,y);
 
-u1grad = @(t,x,y)  cat(3,...
+u1grad = @(t,x,y)  amplification.*cat(3,...
     (2.*x).* (cos(omega1 .* t) + 2), ...
     (2.*y).* (cos(omega1 .* t) + 2));
-u1F = @(x,y) (x.^2 + y.^2 + 1);
-u1C = @(x,y) (x.^2 + y.^2 + 1) .* 2;
-u1Fgrad = @(x,y) cat(3,...
+u1F = @(x,y) amplification.*(x.^2 + y.^2 + 1);
+u1C = @(x,y) amplification.*(x.^2 + y.^2 + 1) .* 2;
+u1Fgrad = @(x,y) amplification.*cat(3,...
     2 .* x, ...
     2 .* y);
-u1Cgrad = @(x,y) 2.*u1Fgrad(x,y); 
+u1Cgrad = @(x,y) amplification.*2.*u1Fgrad(x,y); 
 
-u1laplace = @(t,x,y) 4.* (cos(omega1 .* t) + 2);
-u1tt = @(t,x,y) (x.^2 + y.^2 + 1) .* ((-1).*omega1.^2.*cos(omega1 .* t) );
-u1sqtt = @(t,x,y) (-2).*omega1.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega1.*t) + cos(2.*omega1.*t));
+u1laplace = @(t,x,y) amplification.*4.* (cos(omega1 .* t) + 2);
+u1tt = @(t,x,y) amplification.*(x.^2 + y.^2 + 1) .* ((-1).*omega1.^2.*cos(omega1 .* t) );
+u1sqtt = @(t,x,y) amplification.^2.*(-2).*omega1.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega1.*t) + cos(2.*omega1.*t));
 
-u2laplace = @(t,x,y) 4.* (cos(omega2 .* t) + 2);
-u2tt = @(t,x,y) (x.^2 + y.^2 + 1) .* ((-1).*omega2.^2.*cos(omega2 .* t) );
-u2sqtt = @(t,x,y) (-2).*omega2.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega2.*t)+ cos(2.*omega2.*t));
+u2laplace = @(t,x,y) amplification.* 4.* (cos(omega2 .* t) + 2);
+u2tt = @(t,x,y) amplification.*(x.^2 + y.^2 + 1) .* ((-1).*omega2.^2.*cos(omega2 .* t) );
+u2sqtt = @(t,x,y) amplification.^2.*(-2).*omega2.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega2.*t)+ cos(2.*omega2.*t));
 
-u3laplace = @(t,x,y) u3Amplitude.*4.* (cos(omega3 .* t) + 2);
-u3tt = @(t,x,y) u3Amplitude.*(x.^2 + y.^2 + 1) .* ((-1).*omega3.^2.*cos(omega3 .* t) );
-u3sqtt = @(t,x,y) u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t)+ cos(2.*omega3.*t));
+u3laplace = @(t,x,y) amplification.*u3Amplitude.*4.* (cos(omega3 .* t) + 2);
+u3tt = @(t,x,y) amplification.*u3Amplitude.*(x.^2 + y.^2 + 1) .* ((-1).*omega3.^2.*cos(omega3 .* t) );
+u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t)+ cos(2.*omega3.*t));
 
 
 % specify our time space cylinder and calculate the triangle mesh in space
@@ -452,7 +452,7 @@ if norm(norm(abs(u0sampledrecon - u1sampled),2),2) > 10e-8
 end
 
 % check also the higher amplitude reference state
-u0_3sampledrecon = calcSolution(timeMesh, u3Amplitude*u0sampled, omega1);
+u0_3sampledrecon = calcSolution(timeMesh, amplification.*u3Amplitude*u0sampled, omega1);
 
 % another sanity check
 if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
@@ -561,8 +561,8 @@ else
     x0.refState_2.laplaceu0 = laplaceu0;
     x0.refState_2.kappa0 = squeeze(kappasq0(:,:,2));
 
-    x0.refState_3.u0 = u3Amplitude*u0sampled;
-    x0.refState_3.laplaceu0 = u3Amplitude*laplaceu0;
+    x0.refState_3.u0 = amplification.*u3Amplitude*u0sampled;
+    x0.refState_3.laplaceu0 = amplification.*u3Amplitude*laplaceu0;
     x0.refState_3.kappa0 = squeeze(kappasq0(:,:,3));
 
     referenceStates.u1LaplacianSampled = u1LaplacianSampled;
@@ -591,7 +591,7 @@ x0.refState_3.s0 = s0;
 x0.refState_3.b0 = b0;
 x0.refState_3.eta0 = eta0;
 
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, 10e-12);
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, 10e-14);
 %%
 point = [0.0;0.05];
 

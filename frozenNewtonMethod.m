@@ -6,9 +6,9 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 1/2;
+q = 0.5;
 
-CGIterations = 50;
+CGIterations = 20;
 
 xn = x0; % start at x0
 residue = ones(newtonIterations,4);
@@ -43,16 +43,7 @@ for newtonIter = 1:newtonIterations
     residual_2(:,elements.measurementPointsIdx) = measU2(:,elements.measurementPointsIdx) - squeeze(Un_2(N,:,elements.measurementPointsIdx));
     residual_3(:,elements.measurementPointsIdx) = measU3(:,elements.measurementPointsIdx) - squeeze(Un_3(N,:,elements.measurementPointsIdx));
 
-    % residual in L^2(\Sigma)
-    [~, residue(newtonIter, 1)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_1).^2,1));
-    [~, residue(newtonIter, 2)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_2).^2,1));
-    [~, residue(newtonIter, 3)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_3).^2,1));
-    residue(newtonIter, 4) = sqrt(residue(newtonIter, 1) + residue(newtonIter, 2) + residue(newtonIter, 3));
-    fprintf('Current residue: %e\n',residue(newtonIter, 4));
-    if residue(newtonIter, 4) < NewtonTol
-        break;
-    end
-
+    
     %K^*(h  - F(xn))
     [~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
     [db_1, ds_1, deta_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega1, timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
@@ -104,6 +95,20 @@ for newtonIter = 1:newtonIterations
         res = resNew;
     end
 
+    % residual in L^2(\Sigma), this residue is not the one we optimise,
+    % this is just to check how far we are from the measurement
+    [~, residue(newtonIter, 1)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_1).^2,1));
+    [~, residue(newtonIter, 2)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_2).^2,1));
+    [~, residue(newtonIter, 3)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_3).^2,1));
+    residue(newtonIter, 4) = alpha*calcInnerProductParameters(minusParameters(x0,xn),minusParameters(x0,xn), elements);
+    
+    residue(newtonIter, 5) = sqrt(residue(newtonIter, 1) + residue(newtonIter, 2) + residue(newtonIter, 3) + residue(newtonIter,4));
+    fprintf('Current residue: %e\n',residue(newtonIter, 5));
+    if residue(newtonIter, 5) < NewtonTol
+        break;
+    end
+
+    % update variables
     xn = z;
     alpha = alpha*q;
 end
