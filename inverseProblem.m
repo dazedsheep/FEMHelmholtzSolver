@@ -74,7 +74,7 @@ beta = 0;   % this is important check paper for clarification
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.5;
-values = [3, 3]; % B/A of phantoms
+values = [5, 5]; % B/A of phantoms
 radii = [0.05,0.05];
 diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
 centers = [0,0; 0.1,-0.1];
