@@ -98,7 +98,7 @@ for i=1:N
         F(j+1,:) = -x0.eta0.'.*conj(p_m_eta).*cs; % et0 part (the only one in the adjoint)
         F(j+1,elements.boundaryIdx) = 0;
 
-        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).', conj(cs.').*yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
+        u(i,j+1,:) = solveHelmholtzCondensedC(elements, j*omega, gamma, conj(j^2.*x0.kappa0(:,j+1)), beta, F(j+1,:).', -(cs.').*yobs(j+1,:).', n, K, rowK, colK, M_t, tBM);
     end
 
 end
