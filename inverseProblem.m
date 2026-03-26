@@ -590,8 +590,8 @@ x0.refState_2.eta0 = eta0;
 x0.refState_3.s0 = s0;
 x0.refState_3.b0 = b0;
 x0.refState_3.eta0 = eta0;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, 10e-14);
+CGTol = 10e-50;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, CGTol);
 %%
 point = [0.0;0.05];
 
