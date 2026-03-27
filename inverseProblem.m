@@ -1,14 +1,14 @@
 clear all
 
 % specify our reference states
-f1 = 25;    % 10 Hz
-f2 = 43;    % 20 Hz
-f3 = f1;
+f1 = 31;    % Hz
+f2 = 45;    % Hz
+f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 u3Amplitude = 1.5;
-amplification = 0.5;
+amplification = 1;
 
 
 u1 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
@@ -424,14 +424,15 @@ for i = 1:size(timeMesh,2)
 end
 dn = trapz(timeMesh,a);
 harmonics = 0:(N-1);
-lapu0 = squeeze(kappasq0(:,:,1)).'.*squeeze(U0_1(N,:,:));
-calcLap0sol = calcSolution(timeMesh, -omega1.^2.*harmonics.'.^2 .* lapu0, omega1);
+lapu0 = squeeze(kappaPerturbed(:,:,1)).'.*squeeze(UPert(N,:,:));
+calcLap0sol = calcSolution(timeMesh, -harmonics.'.^2 .* lapu0, omega1);
 % calc also the adjoint state
 residual_1 = zeros(N,size(elements.points,1));
 residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
 [~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, residual_1, nIter, N);
 uadj = calcSolution(timeMesh, squeeze(Uadj_1(N,:,:)), omega1);
 ads = trapz(timeMesh, uadj.*(calcLap0sol));
+[~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
 
 %% theory tells us that we do not need that u0 is a solution of our PDE
 % prepare the harmonics of our reference states
@@ -553,12 +554,12 @@ if useSolutionAsLinPoint == true
 else
     kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 
-    x0.refState_1.u0 = u0sampled;
-    x0.refState_1.laplaceu0 = laplaceu0;
+    x0.refState_1.u0 = amplification.*u0sampled;
+    x0.refState_1.laplaceu0 = amplification.*laplaceu0;
     x0.refState_1.kappa0 = squeeze(kappasq0(:,:,1));
 
-    x0.refState_2.u0 = u0sampled;
-    x0.refState_2.laplaceu0 = laplaceu0;
+    x0.refState_2.u0 = amplification.*u0sampled;
+    x0.refState_2.laplaceu0 = amplification.*laplaceu0;
     x0.refState_2.kappa0 = squeeze(kappasq0(:,:,2));
 
     x0.refState_3.u0 = amplification.*u3Amplitude*u0sampled;
@@ -590,8 +591,30 @@ x0.refState_2.eta0 = eta0;
 x0.refState_3.s0 = s0;
 x0.refState_3.b0 = b0;
 x0.refState_3.eta0 = eta0;
-CGTol = 10e-50;
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 1000, 10e-10, CGTol);
+%% do some sanity checks for the adjoint
+dx.ds = s - x0.refState_1.s0;
+dx.db = b - b;
+dx.deta = eta  - x0.refState_1.eta0;
+dx.excitation = zeros(size(elements.points,1), N);
+
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, true);
+du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+
+residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
+[~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
+uadj = calcSolution(timeMesh, squeeze((Uadj_1(N,:,:))), omega1);
+ads = trapz(timeMesh, uadj.*referenceStates.u1LaplacianSampled);
+adb = trapz(timeMesh, uadj.*referenceStates.u1ttSampled);
+adeta = trapz(timeMesh, uadj.*referenceStates.u1sqttSampled);
+[adb1,ads1, adeta1] = calcAdjointStates(squeeze((Uadj_1(N,:,:))), omega1, timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
+[~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
+[~,int_db] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.db.*adb);
+[~,int_deta] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.deta.*adeta);
+zz = -int_ds + int_db - int_deta
+
+%%
+CGTol = 10e-30;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 15, 10e-10, CGTol);
 %%
 point = [0.0;0.05];
 
