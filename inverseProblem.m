@@ -1,15 +1,14 @@
 clear all
 
 % specify our reference states
-f1 = 31;    % Hz
-f2 = 45;    % Hz
+f1 = 100;    % Hz
+f2 = 200;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 1.5;
+u3Amplitude = 2;
 amplification = 1;
-
 
 u1 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -445,11 +444,17 @@ u0sampled(2,:) = u0Fsampled;
 laplaceu0(1,:) = 8;
 laplaceu0(2,:) = 4;
 % check whether our fourier transform is correct
-u0sampledrecon = calcSolution(timeMesh, u0sampled, omega1);
+u0_1sampledrecon = calcSolution(timeMesh, u0sampled, omega1);
 
 % another sanity check
-if norm(norm(abs(u0sampledrecon - u1sampled),2),2) > 10e-8
+if norm(norm(abs(u0_1sampledrecon - u1sampled),2),2) > 10e-8
     error('Fourier coefficients of reference state 1 do not match.');
+end
+
+u0_2sampledrecon = calcSolution(timeMesh, u0sampled, omega2);
+
+if norm(norm(abs(u0_2sampledrecon - u2sampled),2),2) > 10e-8
+    error('Fourier coefficients of reference state 2 do not match.');
 end
 
 % check also the higher amplitude reference state
@@ -461,7 +466,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-useSolutionAsLinPoint = false;
+useSolutionAsLinPoint = true;
 
 
 if useSolutionAsLinPoint == true
@@ -613,8 +618,21 @@ adeta = trapz(timeMesh, uadj.*referenceStates.u1sqttSampled);
 zz = -int_ds + int_db - int_deta
 
 %%
-CGTol = 10e-30;
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 15, 10e-10, CGTol);
+% since we have the solutions, check how far from the solution our
+% reference states in L^2L^2 are
+u1dist = abs(u1s - u1sampled).^2;
+u2dist = abs(u2s - u2sampled).^2;
+u3dist = abs(u3s - u3sampled).^2;
+[~,d1] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u1dist,1));
+[~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u2dist,1));
+[~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u3dist,1));
+%%
+CGTol = 1e-10;
+xdag.s = s;
+xdag.b = b;
+xdag.eta = eta;
+
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 40, 1e-10, CGTol,xdag);
 %%
 point = [0.0;0.05];
 

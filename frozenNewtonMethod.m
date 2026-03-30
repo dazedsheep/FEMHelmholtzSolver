@@ -1,4 +1,4 @@
-function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGTol)
+function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGTol, xdag)
 
 N = nHarmonics;
 nIter = nIterations;
@@ -12,6 +12,31 @@ CGIterations = 200;
 
 xn = x0; % start at x0
 residue = ones(newtonIterations,4);
+
+% estimate the largest eigenvalue of A
+x = x0;
+x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
+maxIt = 50;
+for k = 1:maxIt
+    Ax = applyA(x, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
+    x = applyA(Ax, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
+    x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
+end
+landweberStepsize = 0.9* 1/calcInnerProductParameters(Ax,Ax,elements);
+
+% for testint purposes
+ml = 1;
+% xn.refState_1.s0 = xn.refState_1.s0 + (xdag.s - xn.refState_1.s0)*ml;
+% xn.refState_1.b0 = xn.refState_1.b0 + (xdag.b - xn.refState_1.b0)*ml;
+% xn.refState_1.eta0 = xn.refState_1.eta0 + (xdag.eta - xn.refState_1.eta0)*ml;
+% 
+% xn.refState_2.s0 = xn.refState_2.s0 + (xdag.s - xn.refState_2.s0)*ml;
+% xn.refState_2.b0 = xn.refState_2.b0 + (xdag.b - xn.refState_2.b0)*ml;
+% xn.refState_2.eta0 = xn.refState_2.eta0 + (xdag.eta - xn.refState_2.eta0)*ml;
+% 
+% xn.refState_3.s0 = xn.refState_3.s0 + (xdag.s - xn.refState_3.s0)*ml;
+% xn.refState_3.b0 = xn.refState_3.b0 + (xdag.b - xn.refState_3.b0)*ml;
+% xn.refState_3.eta0 = xn.refState_3.eta0 + (xdag.eta - xn.refState_3.eta0)*ml;
 
 for newtonIter = 1:newtonIterations
 
@@ -56,13 +81,13 @@ for newtonIter = 1:newtonIterations
     end
 
     %K^*(h  - F(xn))
-    [~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, -residual_1, nIter, N);
+    [~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
     [db_1, ds_1, deta_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega1, timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
 
-    [~, Uadj_2, Fadj_2] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, -residual_2, nIter, N);
+    [~, Uadj_2, Fadj_2] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
     [db_2, ds_2, deta_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega2, timeMesh, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
-    [~, Uadj_3, Fadj_3] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, -residual_3, nIter, N);
+    [~, Uadj_3, Fadj_3] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, residual_3, nIter, N);
     [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega3, timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
 
     rhs = xn;
@@ -80,31 +105,9 @@ for newtonIter = 1:newtonIterations
     rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0    - xn.refState_3.b0);
 
     % now we need to solve Az = rhs
-    z = xn;
-    res = minusParameters(rhs, applyA(z, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint));
-    pk = res;
-    stopres = zeros(CGIterations,1);
-    betak = zeros(CGIterations,1);
-    d = betak;
-    for iter = 1:CGIterations
-        Apk = applyA(pk, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
-        rr = calcInnerProductParameters(res,res, elements);
-        d(iter) = rr / (calcInnerProductParameters(pk, Apk ,elements));
-        z = addParameters(z, scalarMulParameters(d(iter), pk));
-        % the following line may propagate numerical errors
-        resNew = minusParameters(res, scalarMulParameters(d(iter), Apk));
-        rrN = calcInnerProductParameters(resNew, resNew, elements);
-        stopres(iter) = rrN;
-
-        if stopres(iter) < CGTol
-            break;
-        end
-
-        betak(iter) = rrN/rr;
-
-        pk = addParameters(resNew, scalarMulParameters(betak(iter), pk));
-        res = resNew;
-    end
+     % update variables
+    A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
+    [z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
 
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||
@@ -116,17 +119,17 @@ for newtonIter = 1:newtonIterations
     dx.deta = diff.refState_1.eta0;
     dx.excitation = zeros(size(elements.points,1), N);
 
-    [~, DU_1, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, false);
+    [~, DU_1, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, useSolutionAsLinPoint);
 
     dx.ds = diff.refState_2.s0;
     dx.db = diff.refState_2.b0;
     dx.deta = diff.refState_2.eta0;
-    [~, DU_2, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, dx, nIter, N, false);
+    [~, DU_2, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, dx, nIter, N, useSolutionAsLinPoint);
 
     dx.ds = diff.refState_3.s0;
     dx.db = diff.refState_3.b0;
     dx.deta = diff.refState_3.eta0;
-    [~, DU_3, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, dx, nIter, N, false);
+    [~, DU_3, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, dx, nIter, N, useSolutionAsLinPoint);
 
     residual_5 = zeros(size(squeeze(Un_1(N,:,:))));
     residual_6 = zeros(size(squeeze(Un_2(N,:,:))));
@@ -143,7 +146,6 @@ for newtonIter = 1:newtonIterations
     residue(newtonIter, 9) = alpha*calcInnerProductParameters(xdiff,xdiff, elements);
     residue(newtonIter, 10) = sqrt(residue(newtonIter, 6) + residue(newtonIter, 7) + residue(newtonIter, 8) + residue(newtonIter,9));
 
-    % update variables
     xn = z;
     alpha = alpha*q;
 
