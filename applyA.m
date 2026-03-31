@@ -21,7 +21,7 @@ residual_1(:,elements.measurementPointsIdx) = squeeze(DU_1(N,:,elements.measurem
 % j = 1, K^*(K(x_n))
 [~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(1), beta, gamma, x0.refState_1, residual_1, nIter, N);
 
-[db_int_1, ds_int_1, deta_int_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega(1), timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
+[db_int_1, ds_int_1, deta_int_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega(1), timeMesh.timeMesh1, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
 
 %%
 % j = 2, K(x_n)
@@ -33,7 +33,7 @@ residual_2(:,elements.measurementPointsIdx) = squeeze(DU_2(N,:,elements.measurem
 % j = 2, K^*(K(x_n))
 [~, Uadj_2, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, residual_2, nIter, N);
 
-[db_int_2, ds_int_2, deta_int_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega(2), timeMesh, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
+[db_int_2, ds_int_2, deta_int_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega(2), timeMesh.timeMesh2, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
 %%
 % j = 3, K(x_n)
@@ -45,7 +45,7 @@ residual_3(:,elements.measurementPointsIdx) = squeeze(DU_3(N,:,elements.measurem
 % j = 3, K^*(K(x_n))
 [~, Uadj_3, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(3), beta, gamma, x0.refState_3, residual_3, nIter, N);
 
-[db_int_3, ds_int_3, deta_int_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega(3), timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
+[db_int_3, ds_int_3, deta_int_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega(3), timeMesh.timeMesh3, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
 
 % we do not need P*P
 %%

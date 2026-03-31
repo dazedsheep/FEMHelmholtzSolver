@@ -10,7 +10,7 @@ for k = 1:maxit
     
     Ar =  A(res);
    
-    x = minusParameters(x, scalarMulParameters(omega,(Ar)));
+    x = minusParameters(x, scalarMulParameters(omega,Ar));
 
     stopres(k) = sqrt(calcInnerProductParameters(res, res, elements));
 

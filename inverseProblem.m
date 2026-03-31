@@ -1,8 +1,8 @@
 clear all
 
 % specify our reference states
-f1 = 100;    % Hz
-f2 = 200;    % Hz
+f1 = 5;    % Hz
+f2 = 11;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
@@ -40,10 +40,16 @@ u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
 timeMeshh = 0.01;
-% time domain (lowest frequency determines the duration)
-timeMesh = linspace(0, 1/f1, 1/timeMeshh - 1);
-% recompute time difference
-timeMeshh = timeMesh(2) - timeMesh(1); % careful this is the time diff!
+% time mesh for f1
+timeMeshf1 = linspace(0, 1/f1, 1/timeMeshh - 1);
+% time mesh for f2
+timeMeshf2 = linspace(0, 1/f2, 1/timeMeshh - 1);
+% time mesh for f3
+timeMeshf3 = linspace(0, 1/f3, 1/timeMeshh - 1);
+
+timeMesh.timeMesh1 = timeMeshf1;
+timeMesh.timeMesh2 = timeMeshf2;
+timeMesh.timeMesh3 = timeMeshf3;
 
 % our domain
 bcenter = [0,0];
@@ -76,7 +82,7 @@ diffusivity = 0.5;
 values = [5, 5]; % B/A of phantoms
 radii = [0.05,0.05];
 diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [0,0; 0.1,-0.1];
+centers = [0,0; 0.0,-0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -134,9 +140,9 @@ excitations(:,2,3) = amplification.*u3Amplitude.*sourceFrequency;
 [cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
 %%
 % compute the solutions on the time - space mesh
-u1s = calcSolution(timeMesh, squeeze(U1(N,:,:)), omega1);
-u2s = calcSolution(timeMesh, squeeze(U2(N,:,:)), omega2);
-u3s = calcSolution(timeMesh, squeeze(U3(N,:,:)), omega3);
+u1s = calcSolution(timeMesh.timeMesh1, squeeze(U1(N,:,:)), omega1);
+u2s = calcSolution(timeMesh.timeMesh2, squeeze(U2(N,:,:)), omega2);
+u3s = calcSolution(timeMesh.timeMesh3, squeeze(U3(N,:,:)), omega3);
 
 %%
 % define \Sigma our measurement manifold/discrete points
@@ -240,9 +246,9 @@ excitationsReferenceState = excitations;
 [~, U0_3, U0_F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq0(:,:,3)), squeeze(excitationsReferenceState(:,:,3)), eta0, b0, nIter, N, 10^(-12));
 
 % there reference state in time x space
-u0_1 = calcSolution(timeMesh, squeeze(U0_1(N,:,:)), omega1);
-u0_2 = calcSolution(timeMesh, squeeze(U0_2(N,:,:)), omega2);
-u0_3 = calcSolution(timeMesh, squeeze(U0_3(N,:,:)), omega3);
+u0_1 = calcSolution(timeMesh.timeMesh1, squeeze(U0_1(N,:,:)), omega1);
+u0_2 = calcSolution(timeMesh.timeMesh2, squeeze(U0_2(N,:,:)), omega2);
+u0_3 = calcSolution(timeMesh.timeMesh3, squeeze(U0_3(N,:,:)), omega3);
 
 % just a quick sanity check --> the solutions MUST fulfill |\Delta u^0|
 % \geq c > 0 and |u^0| \geq c > 0 a.e. in our time space cylinder, if we
@@ -261,24 +267,24 @@ u0_1_rb = calcRobinBoundary(elements, u0_1, gamma, Gx, Gy);
 u0_2_rb = calcRobinBoundary(elements, u0_2, gamma, Gx, Gy);
 u0_3_rb = calcRobinBoundary(elements, u0_3, gamma, Gx, Gy);
 
-for i=1:size(timeMesh,2)
+for i=1:size(timeMesh.timeMesh1,2)
 
-    u1sampled(i,:) = u1(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u2sampled(i,:) = u2(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u3sampled(i,:) = u3(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u1sampled(i,:) = u1(timeMesh.timeMesh1(i), elements.points(:,1), elements.points(:,2));
+    u2sampled(i,:) = u2(timeMesh.timeMesh2(i), elements.points(:,1), elements.points(:,2));
+    u3sampled(i,:) = u3(timeMesh.timeMesh3(i), elements.points(:,1), elements.points(:,2));
 
-    u1LaplacianSampled(i,:) = u1laplace(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u1ttSampled(i,:) = u1tt(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u1sqttSampled(i,:) = u1sqtt(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u1LaplacianSampled(i,:) = u1laplace(timeMesh.timeMesh1(i), elements.points(:,1), elements.points(:,2));
+    u1ttSampled(i,:) = u1tt(timeMesh.timeMesh1(i), elements.points(:,1), elements.points(:,2));
+    u1sqttSampled(i,:) = u1sqtt(timeMesh.timeMesh1(i), elements.points(:,1), elements.points(:,2));
 
-    u2LaplacianSampled(i,:) = u2laplace(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u2ttSampled(i,:) = u2tt(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u2sqttSampled(i,:) = u2sqtt(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u2LaplacianSampled(i,:) = u2laplace(timeMesh.timeMesh2(i), elements.points(:,1), elements.points(:,2));
+    u2ttSampled(i,:) = u2tt(timeMesh.timeMesh2(i), elements.points(:,1), elements.points(:,2));
+    u2sqttSampled(i,:) = u2sqtt(timeMesh.timeMesh2(i), elements.points(:,1), elements.points(:,2));
 
 
-    u3LaplacianSampled(i,:) = u3laplace(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u3ttSampled(i,:) = u3tt(timeMesh(i), elements.points(:,1), elements.points(:,2));
-    u3sqttSampled(i,:) = u3sqtt(timeMesh(i), elements.points(:,1), elements.points(:,2));
+    u3LaplacianSampled(i,:) = u3laplace(timeMesh.timeMesh3(i), elements.points(:,1), elements.points(:,2));
+    u3ttSampled(i,:) = u3tt(timeMesh.timeMesh3(i), elements.points(:,1), elements.points(:,2));
+    u3sqttSampled(i,:) = u3sqtt(timeMesh.timeMesh3(i), elements.points(:,1), elements.points(:,2));
 
 end
 
@@ -342,7 +348,7 @@ x0.refState_1.kappa0 = constructKappaReparameterized(elements, x0.refState_1.s0,
 
 [~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, true);
 
-du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
 
 err = u1s + du - u1s;
 if max(max(abs(err))) > 10e-15
@@ -372,7 +378,7 @@ xs.refState_1.b0 = perturbed_b;
 xs.refState_1.eta0 = perturbed_eta;
 
 [~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, dx, nIter, N, true);
-du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
 [~, ldx.ds] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.ds).^2.');
 [~, ldx.db] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.db).^2.');
 [~, ldx.deta] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.deta).^2.');
@@ -380,11 +386,11 @@ du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
 nm = sqrt(ldx.ds + ldx.db + ldx.deta);
 % for very small pertubations we should have F(x) \approx F(x0)
 diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
-diffU_time = calcSolution(timeMesh, squeeze(diffU), omega1);
-for i = 1:size(timeMesh,2)
+diffU_time = calcSolution(timeMesh.timeMesh1, squeeze(diffU), omega1);
+for i = 1:size(timeMesh.timeMesh1,2)
     [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
 end
-dn = trapz(timeMesh,a);
+dn = trapz(timeMesh.timeMesh1,a);
 
 %% check the deviation in ds only 
 perturbationCoeff = 0.7;
@@ -409,7 +415,7 @@ xs.refState_1.b0 = perturbed_b;
 xs.refState_1.eta0 = perturbed_eta;
 
 [~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, dx, nIter, N, true);
-du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
 [~, ldx.ds] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.ds).^2.');
 [~, ldx.db] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.db).^2.');
 [~, ldx.deta] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.deta).^2.');
@@ -417,20 +423,20 @@ du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
 nm = sqrt(ldx.ds + ldx.db + ldx.deta);
 % for very small pertubations we should have F(x) \approx F(x0)
 diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
-diffU_time = calcSolution(timeMesh, squeeze(diffU), omega1);
-for i = 1:size(timeMesh,2)
+diffU_time = calcSolution(timeMesh.timeMesh1, squeeze(diffU), omega1);
+for i = 1:size(timeMesh.timeMesh1,2)
     [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
 end
-dn = trapz(timeMesh,a);
+dn = trapz(timeMesh.timeMesh1,a);
 harmonics = 0:(N-1);
 lapu0 = squeeze(kappaPerturbed(:,:,1)).'.*squeeze(UPert(N,:,:));
-calcLap0sol = calcSolution(timeMesh, -harmonics.'.^2 .* lapu0, omega1);
+calcLap0sol = calcSolution(timeMesh.timeMesh1, -harmonics.'.^2 .* lapu0, omega1);
 % calc also the adjoint state
 residual_1 = zeros(N,size(elements.points,1));
 residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
 [~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, residual_1, nIter, N);
-uadj = calcSolution(timeMesh, squeeze(Uadj_1(N,:,:)), omega1);
-ads = trapz(timeMesh, uadj.*(calcLap0sol));
+uadj = calcSolution(timeMesh.timeMesh1, squeeze(Uadj_1(N,:,:)), omega1);
+ads = trapz(timeMesh.timeMesh1, uadj.*(calcLap0sol));
 [~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
 
 %% theory tells us that we do not need that u0 is a solution of our PDE
@@ -444,21 +450,21 @@ u0sampled(2,:) = u0Fsampled;
 laplaceu0(1,:) = 8;
 laplaceu0(2,:) = 4;
 % check whether our fourier transform is correct
-u0_1sampledrecon = calcSolution(timeMesh, u0sampled, omega1);
+u0_1sampledrecon = calcSolution(timeMesh.timeMesh1, u0sampled, omega1);
 
 % another sanity check
 if norm(norm(abs(u0_1sampledrecon - u1sampled),2),2) > 10e-8
     error('Fourier coefficients of reference state 1 do not match.');
 end
 
-u0_2sampledrecon = calcSolution(timeMesh, u0sampled, omega2);
+u0_2sampledrecon = calcSolution(timeMesh.timeMesh2, u0sampled, omega2);
 
 if norm(norm(abs(u0_2sampledrecon - u2sampled),2),2) > 10e-8
     error('Fourier coefficients of reference state 2 do not match.');
 end
 
 % check also the higher amplitude reference state
-u0_3sampledrecon = calcSolution(timeMesh, amplification.*u3Amplitude*u0sampled, omega1);
+u0_3sampledrecon = calcSolution(timeMesh.timeMesh3, amplification.*u3Amplitude*u0sampled, omega1);
 
 % another sanity check
 if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
@@ -466,7 +472,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-useSolutionAsLinPoint = true;
+useSolutionAsLinPoint = false;
 
 
 if useSolutionAsLinPoint == true
@@ -532,17 +538,17 @@ if useSolutionAsLinPoint == true
         u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
         u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
     end
-    u1tt = calcSolution(timeMesh, u1ttf, omega1);
-    u1lap = calcSolution(timeMesh, u1laplacef,omega1);
-    u1sqtt = calcSolution(timeMesh, u1sqttf,omega1);
+    u1tt = calcSolution(timeMesh.timeMesh1, u1ttf, omega1);
+    u1lap = calcSolution(timeMesh.timeMesh1, u1laplacef,omega1);
+    u1sqtt = calcSolution(timeMesh.timeMesh1, u1sqttf,omega1);
 
-    u2tt = calcSolution(timeMesh, u2ttf, omega2);
-    u2lap = calcSolution(timeMesh, u2laplacef,omega2);
-    u2sqtt = calcSolution(timeMesh, u2sqttf,omega2);
+    u2tt = calcSolution(timeMesh.timeMesh2, u2ttf, omega2);
+    u2lap = calcSolution(timeMesh.timeMesh2, u2laplacef,omega2);
+    u2sqtt = calcSolution(timeMesh.timeMesh2, u2sqttf,omega2);
 
-    u3tt = calcSolution(timeMesh, u3ttf, omega3);
-    u3lap = calcSolution(timeMesh, u3laplacef,omega3);
-    u3sqtt = calcSolution(timeMesh, u3sqttf,omega3);
+    u3tt = calcSolution(timeMesh.timeMesh3, u3ttf, omega3);
+    u3lap = calcSolution(timeMesh.timeMesh3, u3laplacef,omega3);
+    u3sqtt = calcSolution(timeMesh.timeMesh3, u3sqttf,omega3);
     
     referenceStates.u1LaplacianSampled = u1lap;
     referenceStates.u1ttSampled = u1tt;
@@ -603,15 +609,15 @@ dx.deta = eta  - x0.refState_1.eta0;
 dx.excitation = zeros(size(elements.points,1), N);
 
 [~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, true);
-du = calcSolution(timeMesh, squeeze(DU(N,:,:)), omega1);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
 
 residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
 [~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
-uadj = calcSolution(timeMesh, squeeze((Uadj_1(N,:,:))), omega1);
-ads = trapz(timeMesh, uadj.*referenceStates.u1LaplacianSampled);
-adb = trapz(timeMesh, uadj.*referenceStates.u1ttSampled);
-adeta = trapz(timeMesh, uadj.*referenceStates.u1sqttSampled);
-[adb1,ads1, adeta1] = calcAdjointStates(squeeze((Uadj_1(N,:,:))), omega1, timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
+uadj = calcSolution(timeMesh.timeMesh1, squeeze((Uadj_1(N,:,:))), omega1);
+ads = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1LaplacianSampled);
+adb = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1ttSampled);
+adeta = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1sqttSampled);
+[adb1,ads1, adeta1] = calcAdjointStates(squeeze((Uadj_1(N,:,:))), omega1, timeMesh.timeMesh1, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
 [~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
 [~,int_db] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.db.*adb);
 [~,int_deta] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.deta.*adeta);
@@ -623,9 +629,9 @@ zz = -int_ds + int_db - int_deta
 u1dist = abs(u1s - u1sampled).^2;
 u2dist = abs(u2s - u2sampled).^2;
 u3dist = abs(u3s - u3sampled).^2;
-[~,d1] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u1dist,1));
-[~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u2dist,1));
-[~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh,u3dist,1));
+[~,d1] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh1,u1dist,1));
+[~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh2,u2dist,1));
+[~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
 CGTol = 1e-10;
 xdag.s = s;

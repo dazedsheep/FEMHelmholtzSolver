@@ -13,16 +13,16 @@ CGIterations = 200;
 xn = x0; % start at x0
 residue = ones(newtonIterations,4);
 
-% estimate the largest eigenvalue of A
+% estimate the largest eigenvalue of A 
 x = x0;
 x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
-maxIt = 50;
+maxIt = 3;
 for k = 1:maxIt
     Ax = applyA(x, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     x = applyA(Ax, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
 end
-landweberStepsize = 0.9* 1/calcInnerProductParameters(Ax,Ax,elements);
+landweberStepsize = 0.9 * 1/calcInnerProductParameters(Ax,Ax,elements);
 
 % for testint purposes
 ml = 1;
@@ -82,14 +82,14 @@ for newtonIter = 1:newtonIterations
 
     %K^*(h  - F(xn))
     [~, Uadj_1, Fadj_1] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
-    [db_1, ds_1, deta_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega1, timeMesh, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
+    [db_1, ds_1, deta_1] = calcAdjointStates((squeeze(Uadj_1(N,:,:))), omega1, timeMesh.timeMesh1, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
 
     [~, Uadj_2, Fadj_2] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, x0.refState_2, residual_2, nIter, N);
-    [db_2, ds_2, deta_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega2, timeMesh, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
+    [db_2, ds_2, deta_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega2, timeMesh.timeMesh2, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
     [~, Uadj_3, Fadj_3] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, x0.refState_3, residual_3, nIter, N);
-    [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega3, timeMesh, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
-
+    [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega3, timeMesh.timeMesh3, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
+    
     rhs = xn;
 
     rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0  - xn.refState_1.eta0);
@@ -105,10 +105,10 @@ for newtonIter = 1:newtonIterations
     rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0    - xn.refState_3.b0);
 
     % now we need to solve Az = rhs
-     % update variables
+    % update variables
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
-    [z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
-
+    %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
+    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100);
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||
     % compute our residue
@@ -135,9 +135,9 @@ for newtonIter = 1:newtonIterations
     residual_6 = zeros(size(squeeze(Un_2(N,:,:))));
     residual_7 = zeros(size(squeeze(Un_3(N,:,:))));
 
-    residual_5(:,elements.measurementPointsIdx) = measU1(:,elements.measurementPointsIdx) - squeeze(DU_1(N,:,elements.measurementPointsIdx)) + squeeze(Un_1(N,:,elements.measurementPointsIdx));
-    residual_6(:,elements.measurementPointsIdx) = measU2(:,elements.measurementPointsIdx) - squeeze(DU_2(N,:,elements.measurementPointsIdx)) + squeeze(Un_2(N,:,elements.measurementPointsIdx));
-    residual_7(:,elements.measurementPointsIdx) = measU3(:,elements.measurementPointsIdx) - squeeze(DU_3(N,:,elements.measurementPointsIdx)) + squeeze(Un_3(N,:,elements.measurementPointsIdx));
+    residual_5(:,elements.measurementPointsIdx) = measU1(:,elements.measurementPointsIdx) - squeeze(DU_1(N,:,elements.measurementPointsIdx)) - squeeze(Un_1(N,:,elements.measurementPointsIdx));
+    residual_6(:,elements.measurementPointsIdx) = measU2(:,elements.measurementPointsIdx) - squeeze(DU_2(N,:,elements.measurementPointsIdx)) - squeeze(Un_2(N,:,elements.measurementPointsIdx));
+    residual_7(:,elements.measurementPointsIdx) = measU3(:,elements.measurementPointsIdx) - squeeze(DU_3(N,:,elements.measurementPointsIdx)) - squeeze(Un_3(N,:,elements.measurementPointsIdx));
 
     xdiff = minusParameters(x0,z);
     [~, residue(newtonIter, 6)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_5).^2,1));
