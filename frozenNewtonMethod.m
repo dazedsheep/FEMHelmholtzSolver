@@ -6,15 +6,21 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.5;
+q = 0.8;
 
 CGIterations = 200;
 
+% do not start in x0, for now use our xdag
 xn = x0; % start at x0
+
 residue = ones(newtonIterations,4);
 
 % estimate the largest eigenvalue of A 
 x = x0;
+xn.refState_1.eta0 = min(xdag.eta).*ones(size(xdag.eta));
+xn.refState_2.eta0 = min(xdag.eta).*ones(size(xdag.eta));
+xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
+
 x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
 maxIt = 3;
 for k = 1:maxIt
@@ -23,20 +29,19 @@ for k = 1:maxIt
     x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
 end
 landweberStepsize = 0.9 * 1/calcInnerProductParameters(Ax,Ax,elements);
-
 % for testint purposes
-ml = 1;
-% xn.refState_1.s0 = xn.refState_1.s0 + (xdag.s - xn.refState_1.s0)*ml;
-% xn.refState_1.b0 = xn.refState_1.b0 + (xdag.b - xn.refState_1.b0)*ml;
-% xn.refState_1.eta0 = xn.refState_1.eta0 + (xdag.eta - xn.refState_1.eta0)*ml;
+% ml = 0.1;
+%  xn.refState_1.s0 = xn.refState_1.s0 + (xdag.s - xn.refState_1.s0)*ml;
+%  xn.refState_1.b0 = xn.refState_1.b0 + (xdag.b - xn.refState_1.b0)*ml;
+%  xn.refState_1.eta0 = xn.refState_1.eta0 + (xdag.eta - xn.refState_1.eta0)*ml;
 % 
-% xn.refState_2.s0 = xn.refState_2.s0 + (xdag.s - xn.refState_2.s0)*ml;
-% xn.refState_2.b0 = xn.refState_2.b0 + (xdag.b - xn.refState_2.b0)*ml;
-% xn.refState_2.eta0 = xn.refState_2.eta0 + (xdag.eta - xn.refState_2.eta0)*ml;
+%  xn.refState_2.s0 = xn.refState_2.s0 + (xdag.s - xn.refState_2.s0)*ml;
+%  xn.refState_2.b0 = xn.refState_2.b0 + (xdag.b - xn.refState_2.b0)*ml;
+%  xn.refState_2.eta0 = xn.refState_2.eta0 + (xdag.eta - xn.refState_2.eta0)*ml;
 % 
-% xn.refState_3.s0 = xn.refState_3.s0 + (xdag.s - xn.refState_3.s0)*ml;
-% xn.refState_3.b0 = xn.refState_3.b0 + (xdag.b - xn.refState_3.b0)*ml;
-% xn.refState_3.eta0 = xn.refState_3.eta0 + (xdag.eta - xn.refState_3.eta0)*ml;
+%  xn.refState_3.s0 = xn.refState_3.s0 + (xdag.s - xn.refState_3.s0)*ml;
+%  xn.refState_3.b0 = xn.refState_3.b0 + (xdag.b - xn.refState_3.b0)*ml;
+%  xn.refState_3.eta0 = xn.refState_3.eta0 + (xdag.eta - xn.refState_3.eta0)*ml;
 
 for newtonIter = 1:newtonIterations
 
@@ -145,10 +150,10 @@ for newtonIter = 1:newtonIterations
     [~, residue(newtonIter, 8)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_7).^2,1));
     residue(newtonIter, 9) = alpha*calcInnerProductParameters(xdiff,xdiff, elements);
     residue(newtonIter, 10) = sqrt(residue(newtonIter, 6) + residue(newtonIter, 7) + residue(newtonIter, 8) + residue(newtonIter,9));
+    fprintf('Current residual for J(x,x_n): %e\n',residue(newtonIter, 5));
 
     xn = z;
     alpha = alpha*q;
-
    
 end
 end

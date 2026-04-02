@@ -31,7 +31,7 @@ dx.db   = xn.refState_2.b0;
 [~, DU_2, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, dx, nIter, N, useSolutionAsLinPoint);
 residual_2(:,elements.measurementPointsIdx) = squeeze(DU_2(N,:,elements.measurementPointsIdx));
 % j = 2, K^*(K(x_n))
-[~, Uadj_2, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2, residual_2, nIter, N);
+[~, Uadj_2, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega(2), beta, gamma, x0.refState_2,residual_2, nIter, N);
 
 [db_int_2, ds_int_2, deta_int_2] = calcAdjointStates((squeeze(Uadj_2(N,:,:))), omega(2), timeMesh.timeMesh2, referenceStates.u2LaplacianSampled, referenceStates.u2ttSampled, referenceStates.u2sqttSampled);
 
