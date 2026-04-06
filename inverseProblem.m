@@ -30,11 +30,11 @@ u1sqtt = @(t,x,y) amplification.^2.*(-2).*omega1.^2.*(x.^2 + y.^2 + 1).^2.*(2.*c
 
 u2laplace = @(t,x,y) amplification.* 4.* (cos(omega2 .* t) + 2);
 u2tt = @(t,x,y) amplification.*(x.^2 + y.^2 + 1) .* ((-1).*omega2.^2.*cos(omega2 .* t) );
-u2sqtt = @(t,x,y) amplification.^2.*(-2).*omega2.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega2.*t)+ cos(2.*omega2.*t));
+u2sqtt = @(t,x,y) amplification.^2.*(-2).*omega2.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega2.*t) + cos(2.*omega2.*t));
 
 u3laplace = @(t,x,y) amplification.*u3Amplitude.*4.* (cos(omega3 .* t) + 2);
 u3tt = @(t,x,y) amplification.*u3Amplitude.*(x.^2 + y.^2 + 1) .* ((-1).*omega3.^2.*cos(omega3 .* t) );
-u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t)+ cos(2.*omega3.*t));
+u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t) + cos(2.*omega3.*t));
 
 
 % specify our time space cylinder and calculate the triangle mesh in space
@@ -79,10 +79,10 @@ beta = 0;   % this is important check paper for clarification
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.5;
-values = [10, 10]; % B/A of phantoms
+values = [250, 250]; % B/A of phantoms
 radii = [0.05,0.05];
 diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [0.1,0; 0.1,-0.1];
+centers = [-0.1,0.1; 0.1,-0.1];
 
 massDensity = 1000; %kg/m^3
 
