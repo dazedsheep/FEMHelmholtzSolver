@@ -6,7 +6,7 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.8;
+q = 0.5;
 
 CGIterations = 200;
 
@@ -150,7 +150,7 @@ for newtonIter = 1:newtonIterations
     [~, residue(newtonIter, 8)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_7).^2,1));
     residue(newtonIter, 9) = alpha*calcInnerProductParameters(xdiff,xdiff, elements);
     residue(newtonIter, 10) = sqrt(residue(newtonIter, 6) + residue(newtonIter, 7) + residue(newtonIter, 8) + residue(newtonIter,9));
-    fprintf('Current residual for J(x,x_n): %e\n',residue(newtonIter, 5));
+    fprintf('Current residual for J(x,x_n): %e\n',residue(newtonIter, 10));
 
     xn = z;
     alpha = alpha*q;

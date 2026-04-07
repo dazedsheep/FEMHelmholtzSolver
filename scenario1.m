@@ -1,3 +1,4 @@
+%% secnario 1
 clear all
 
 % specify our reference states
@@ -69,6 +70,7 @@ elements.interiorIdx = interiorIdx;
 elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
+
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
 gamma = 1;
@@ -93,11 +95,21 @@ nIter = 6;
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
 
-eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
+eta_values = [0.001]; % B/A of phantoms
+eta_radii = [0.025];
+eta_centers = [0.1;0.1];
 
-s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
+s_values = [1.2]; % B/A of phantoms
+s_radii = [0.03];
+s_centers = [0.1;-0.1];
 
-b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii);
+b_values = [1.15]; % B/A of phantoms
+b_radii = [0.03];
+b_centers = [-0.1;0.1];
+
+eta = constructParameter(elements, eta_centers, eta_radii, eta_values,0);
+s = constructParameter(elements, s_centers, s_radii, s_values,1);
+b = constructParameter(elements, b_centers, b_radii, b_values,1);
 
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
