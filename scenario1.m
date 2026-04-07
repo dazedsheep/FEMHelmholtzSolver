@@ -77,18 +77,6 @@ gamma = 1;
 
 beta = 0;   % this is important check paper for clarification
 
-% define a phantom in our domain with different speed of sound, diffusivity
-% and nonlinearity parameter
-diffusivity = 1;
-values = [8, 6]; % B/A of phantoms
-radii = [0.05,0.05];
-diffusivityPhantoms = [0.49,0.49]; % this allows to adjust the diffusivity for the phantoms
-centers = [-0.1,0.1; 0.1,-0.1];
-
-massDensity = 1000; %kg/m^3
-
-speed_of_sound = 2;
-
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
@@ -99,11 +87,11 @@ eta_values = [0.001]; % B/A of phantoms
 eta_radii = [0.025];
 eta_centers = [0.1;0.1];
 
-s_values = [1.2]; % B/A of phantoms
+s_values = [1.04]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
-b_values = [1.15]; % B/A of phantoms
+b_values = [1.05]; % B/A of phantoms
 b_radii = [0.03];
 b_centers = [-0.1;0.1];
 
