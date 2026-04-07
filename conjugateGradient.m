@@ -12,6 +12,7 @@ for iter = 1:maxit
     x = addParameters(x, scalarMulParameters(d(iter), pk));
     % the following line may propagate numerical errors
     resNew = minusParameters(res, scalarMulParameters(d(iter), Apk));
+    %resNew = minusParameters(b, A(x));
     rrN = calcInnerProductParameters(resNew, resNew, elements);
     stopres(iter) = sqrt(rrN);
 

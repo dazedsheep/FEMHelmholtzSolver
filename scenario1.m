@@ -2,28 +2,28 @@
 clear all
 
 % specify our reference states
-f1 = 47;    % Hz
-f2 = 101;    % Hz
+f1 = 53;    % Hz
+f2 = 127;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 u3Amplitude = 2;
 amplification = 1;
-
-u1 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
-u2 = @(t,x,y) amplification*(x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
-u3 = @(t,x,y) amplification.*u3Amplitude .* u1(t,x,y);
+MeasurementAmplification = 1;
+u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
+u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
+u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
 
 u1grad = @(t,x,y)  amplification.*cat(3,...
     (2.*x).* (cos(omega1 .* t) + 2), ...
     (2.*y).* (cos(omega1 .* t) + 2));
-u1F = @(x,y) amplification.*(x.^2 + y.^2 + 1);
-u1C = @(x,y) amplification.*(x.^2 + y.^2 + 1) .* 2;
+u1F = @(x,y) amplification.* (x.^2 + y.^2 + 1);
+u1C = @(x,y) amplification.* (x.^2 + y.^2 + 1) .* 2;
 u1Fgrad = @(x,y) amplification.*cat(3,...
     2 .* x, ...
     2 .* y);
-u1Cgrad = @(x,y) amplification.*2.*u1Fgrad(x,y); 
+u1Cgrad = @(x,y) amplification.*2.*u1Fgrad(x,y);
 
 u1laplace = @(t,x,y) amplification.*4.* (cos(omega1 .* t) + 2);
 u1tt = @(t,x,y) amplification.*(x.^2 + y.^2 + 1) .* ((-1).*omega1.^2.*cos(omega1 .* t) );
@@ -40,7 +40,7 @@ u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^
 
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
-timeMeshh =  1/(2*max([f1,f2,f3]));
+timeMeshh = 1/(2*max([f1,f2,f3]));
 % time mesh for f1
 timeMeshf1 = linspace(0, 1/f1, 1/timeMeshh - 1);
 % time mesh for f2
@@ -63,13 +63,15 @@ meshSize = 0.01;
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
+% prepare FEM matrices a priori
+[elements.M_t, elements.tBM,  elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
+
 % pre-compute some useful things w.r.t. the triangular mesh
 fullboundaryIdx = elements.edges(:,1);
 interiorIdx = setdiff(1:(size(elements.points,1)), fullboundaryIdx);
 elements.interiorIdx = interiorIdx;
 elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
-
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -84,20 +86,20 @@ nIter = 6;
 sourceValueDomain = 2; % B/A of domain
 
 eta_values = [0.001]; % B/A of phantoms
-eta_radii = [0.025];
-eta_centers = [0.1;0.1];
+eta_radii = [0.05];
+eta_centers = [0.0;0.1];
 
-s_values = [1.04]; % B/A of phantoms
-s_radii = [0.03];
-s_centers = [0.1;-0.1];
+s_values = [2]; % B/A of phantoms
+s_radii = [0.05];
+s_centers = [0.1;0.1];
 
-b_values = [1.05]; % B/A of phantoms
-b_radii = [0.03];
-b_centers = [-0.1;0.1];
+b_values = [0.06, 0.06]; % B/A of phantoms
+b_radii = [0.05, 0.05];
+b_centers = [-0.1, 0.1;-0.1,-0.1];
 
 eta = constructParameter(elements, eta_centers, eta_radii, eta_values,0);
 s = constructParameter(elements, s_centers, s_radii, s_values,1);
-b = constructParameter(elements, b_centers, b_radii, b_values,1);
+b = constructParameter(elements, b_centers, b_radii, b_values,0.001);
 
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
@@ -127,12 +129,12 @@ sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), 
 
 %%
 excitations = zeros(size(elements.points,1), N, 3);
-excitations(:,1,1) = amplification.*sourceConstant;
-excitations(:,2,1) = amplification.*sourceFrequency;
-excitations(:,1,2) = amplification.*sourceConstant;
-excitations(:,2,2) = amplification.*sourceFrequency;
-excitations(:,1,3) = amplification.*u3Amplitude.*sourceConstant;
-excitations(:,2,3) = amplification.*u3Amplitude.*sourceFrequency;
+excitations(:,1,1) = MeasurementAmplification.*sourceConstant;
+excitations(:,2,1) = MeasurementAmplification.*sourceFrequency;
+excitations(:,1,2) = MeasurementAmplification.*sourceConstant;
+excitations(:,2,2) = MeasurementAmplification.*sourceFrequency;
+excitations(:,1,3) = MeasurementAmplification.*u3Amplitude.*sourceConstant;
+excitations(:,2,3) = MeasurementAmplification.*u3Amplitude.*sourceFrequency;
 %%
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
@@ -390,7 +392,7 @@ for i = 1:size(timeMesh.timeMesh1,2)
 end
 dn = trapz(timeMesh.timeMesh1,a);
 
-%% check the deviation in ds only 
+%% check the deviation in ds only
 perturbationCoeff = 0.7;
 perturbed_s = s.*perturbationCoeff;
 perturbed_b = b0;
@@ -462,7 +464,7 @@ if norm(norm(abs(u0_2sampledrecon - u2sampled),2),2) > 10e-8
 end
 
 % check also the higher amplitude reference state
-u0_3sampledrecon = calcSolution(timeMesh.timeMesh3, amplification.*u3Amplitude*u0sampled, omega1);
+u0_3sampledrecon = calcSolution(timeMesh.timeMesh3, u3Amplitude*u0sampled, omega1);
 
 % another sanity check
 if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
@@ -470,7 +472,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-useSolutionAsLinPoint = false;
+useSolutionAsLinPoint = true;
 
 
 if useSolutionAsLinPoint == true
@@ -547,7 +549,7 @@ if useSolutionAsLinPoint == true
     u3tt = calcSolution(timeMesh.timeMesh3, u3ttf, omega3);
     u3lap = calcSolution(timeMesh.timeMesh3, u3laplacef,omega3);
     u3sqtt = calcSolution(timeMesh.timeMesh3, u3sqttf,omega3);
-    
+
     referenceStates.u1LaplacianSampled = u1lap;
     referenceStates.u1ttSampled = u1tt;
     referenceStates.u1sqttSampled = u1sqtt;
@@ -586,6 +588,50 @@ else
     referenceStates.u3LaplacianSampled = u3LaplacianSampled;
     referenceStates.u3ttSampled = u3ttSampled;
     referenceStates.u3sqttSampled = u3sqttSampled;
+
+    % check whether our fourier transform is correct
+    u0_1sampledrecon = calcSolution(timeMesh.timeMesh1, x0.refState_1.u0, omega1);
+
+    % another sanity check
+    if norm(norm(abs(u0_1sampledrecon - u1sampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 1 do not match.');
+    end
+
+    u0_2sampledrecon = calcSolution(timeMesh.timeMesh2, x0.refState_2.u0, omega2);
+
+    if norm(norm(abs(u0_2sampledrecon - u2sampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 2 do not match.');
+    end
+
+    % check also the higher amplitude reference state
+    u0_3sampledrecon = calcSolution(timeMesh.timeMesh3, x0.refState_3.u0, omega3);
+
+    % another sanity check
+    if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 3 do not match.');
+    end
+
+    u0_1Laplacerecon = calcSolution(timeMesh.timeMesh1, x0.refState_1.laplaceu0, omega1);
+
+    % another sanity check
+    if norm(norm(abs(u0_1Laplacerecon - u1LaplacianSampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 1 do not match.');
+    end
+
+    u0_2Laplacerecon = calcSolution(timeMesh.timeMesh2, x0.refState_2.laplaceu0, omega2);
+
+    if norm(norm(abs(u0_2Laplacerecon - u2LaplacianSampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 2 do not match.');
+    end
+
+    % check also the higher amplitude reference state
+    u0_3Laplacerecon = calcSolution(timeMesh.timeMesh3, x0.refState_3.laplaceu0, omega3);
+
+    % another sanity check
+    if norm(norm(abs(u0_3Laplacerecon - u3LaplacianSampled),2),2) > 10e-8
+        error('Fourier coefficients of reference state 3 do not match.');
+    end
+
 
 end
 
@@ -636,7 +682,7 @@ xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
 
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 40, 1e-10, CGTol,xdag);
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
 %%
 point = [0.0;0.05];
 

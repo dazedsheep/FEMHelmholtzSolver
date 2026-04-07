@@ -16,19 +16,12 @@ xn = x0; % start at x0
 residue = ones(newtonIterations,4);
 
 % estimate the largest eigenvalue of A 
-x = x0;
+
 xn.refState_1.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_2.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 
-x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
-maxIt = 3;
-for k = 1:maxIt
-    Ax = applyA(x, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
-    x = applyA(Ax, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
-    x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
-end
-landweberStepsize = 0.9 * 1/calcInnerProductParameters(Ax,Ax,elements);
+
 % for testint purposes
 % ml = 0.1;
 %  xn.refState_1.s0 = xn.refState_1.s0 + (xdag.s - xn.refState_1.s0)*ml;
@@ -114,6 +107,7 @@ for newtonIter = 1:newtonIterations
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
     [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100);
+    %[z, iters, res] = gradientDescent(elements, A, rhs, xn, CGTol, 100);
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||
     % compute our residue

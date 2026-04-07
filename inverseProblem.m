@@ -2,7 +2,7 @@ clear all
 
 % specify our reference states
 f1 = 47;    % Hz
-f2 = 101;    % Hz
+f2 = 123;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
