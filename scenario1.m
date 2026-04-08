@@ -2,13 +2,13 @@
 clear all
 
 % specify our reference states
-f1 = 53;    % Hz
-f2 = 127;    % Hz
+f1 = 61;    % Hz
+f2 = 78;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 2;
+u3Amplitude = 4;
 amplification = 1;
 MeasurementAmplification = 1;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
@@ -85,21 +85,21 @@ nIter = 6;
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
 
-eta_values = [0.001]; % B/A of phantoms
-eta_radii = [0.05];
+eta_values = [0.01]; % B/A of phantoms
+eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [2]; % B/A of phantoms
-s_radii = [0.05];
-s_centers = [0.1;0.1];
+s_values = [1454]; % B/A of phantoms
+s_radii = [0.03];
+s_centers = [0.1;-0.1];
 
-b_values = [0.06, 0.06]; % B/A of phantoms
-b_radii = [0.05, 0.05];
-b_centers = [-0.1, 0.1;-0.1,-0.1];
+b_values = [20.05]; % B/A of phantoms
+b_radii = [0.03];
+b_centers = [-0.1;-0.1];
 
-eta = constructParameter(elements, eta_centers, eta_radii, eta_values,0);
-s = constructParameter(elements, s_centers, s_radii, s_values,1);
-b = constructParameter(elements, b_centers, b_radii, b_values,0.001);
+eta = constructParameter(elements, eta_centers, eta_radii, eta_values, 0);
+s = constructParameter(elements, s_centers, s_radii, s_values, 1450);
+b = constructParameter(elements, b_centers, b_radii, b_values, 20);
 
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
@@ -677,7 +677,7 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh2,u2dist,1));
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
-CGTol = 1e-10;
+CGTol = 1e-30;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
