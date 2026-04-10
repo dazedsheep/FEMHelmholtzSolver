@@ -82,11 +82,11 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
-eta_values = [0.001]; % B/A of phantoms
+eta_values = [0.004]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [2001]; % B/A of phantoms
+s_values = [2002]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
