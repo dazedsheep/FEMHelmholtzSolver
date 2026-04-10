@@ -6,7 +6,7 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.5;
+q = 0.6;
 
 CGIterations = 200;
 

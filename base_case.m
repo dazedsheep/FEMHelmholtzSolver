@@ -3,14 +3,14 @@ clear all
 
 % specify our reference states
 f1 = 47;    % Hz
-f2 = 123;    % Hz
+f2 = 83;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 4;
+u3Amplitude = 15;
 amplification = 1;
-MeasurementAmplification = 2;
+MeasurementAmplification = 10;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -137,8 +137,8 @@ excitations(:,1,1) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,1) = MeasurementAmplification.*sourceFrequency;
 excitations(:,1,2) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,2) = MeasurementAmplification.*sourceFrequency;
-excitations(:,1,3) = MeasurementAmplification.*u3Amplitude.*sourceConstant;
-excitations(:,2,3) = MeasurementAmplification.*u3Amplitude.*sourceFrequency;
+excitations(:,1,3) = u3Amplitude.*sourceConstant;
+excitations(:,2,3) = u3Amplitude.*sourceFrequency;
 %%
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
