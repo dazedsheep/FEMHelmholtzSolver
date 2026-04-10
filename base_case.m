@@ -8,9 +8,9 @@ f3 = f1;    % frequency of third reference state = frequency of first reference 
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 2;
+u3Amplitude = 4;
 amplification = 1;
-MeasurementAmplification = 1;
+MeasurementAmplification = 2;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -84,10 +84,10 @@ nIter = 6;
 
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
-diffusivity = 0.005;
+diffusivity = 0.05;
 values = [8]; % B/A of phantoms
-radii = [0.03];
-diffusivityPhantoms = [0.0048]; % this allows to adjust the diffusivity for the phantoms
+radii = [0.05];
+diffusivityPhantoms = [0.048]; % this allows to adjust the diffusivity for the phantoms
 centers = [0; 0.1];
 
 massDensity = 1000; %kg/m^3
@@ -360,10 +360,10 @@ if max(max(abs(err))) > 10e-15
 end
 
 % now with a small pertubation
-perturbationCoeff = 0.9;
+perturbationCoeff = 0.99;
 perturbed_s = s.*perturbationCoeff;
 perturbed_b = b.*perturbationCoeff;
-perturbed_eta = 0;
+perturbed_eta = eta.*perturbationCoeff;
 
 kappaPerturbed = constructKappaReparameterized(elements, perturbed_s, perturbed_b, omega1, N);
 
@@ -391,6 +391,12 @@ nm = sqrt(ldx.ds + ldx.db + ldx.deta);
 % for very small pertubations we should have F(x) \approx F(x0)
 diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
 diffU_time = calcSolution(timeMesh.timeMesh1, squeeze(diffU), omega1);
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),trapz(timeMesh.timeMesh1, abs(calcSolution(timeMesh.timeMesh1,squeeze(UPert(N,:,:) - U1(N,:,:)), omega1)).^2,1), 'facecolor', 'interp'); shading interp;
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),trapz(timeMesh.timeMesh1, abs(du).^2,1), 'facecolor', 'interp'); shading interp;
+%du_diff = calcSolution(timeMesh.timeMesh1,squeeze(U1(N,:,:) - UPert(N,:,:)), omega1);
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), du_diff(1,:), 'facecolor', 'interp'); shading interp;
+%figure, trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), du(1,:), 'facecolor', 'interp'); shading interp;
+
 for i = 1:size(timeMesh.timeMesh1,2)
     [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
 end
