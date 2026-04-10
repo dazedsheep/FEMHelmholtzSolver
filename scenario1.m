@@ -3,7 +3,7 @@ clear all
 
 % specify our reference states
 f1 = 47;    % Hz
-f2 = 83;    % Hz
+f2 = 65;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
@@ -86,7 +86,7 @@ eta_values = [0.004]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [2002]; % B/A of phantoms
+s_values = [2005]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
