@@ -2,15 +2,15 @@
 clear all
 
 % specify our reference states
-f1 = 60;    % Hz
-f2 = 123;    % Hz
+f1 = 47;    % Hz
+f2 = 83;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 4;
+u3Amplitude = 15;
 amplification = 1;
-MeasurementAmplification = 2;
+MeasurementAmplification = 10;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -82,24 +82,21 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
-% create the space dependent parameters
-sourceValueDomain = 2; % B/A of domain
-
-eta_values = [0.01]; % B/A of phantoms
+eta_values = [0.001]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [145005]; % B/A of phantoms
+s_values = [2001]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
-b_values = [701]; % B/A of phantoms
+b_values = [50.1]; % B/A of phantoms
 b_radii = [0.03];
 b_centers = [-0.1;-0.1];
 
 eta = constructParameter(elements, eta_centers, eta_radii, eta_values, 0);
-s = constructParameter(elements, s_centers, s_radii, s_values, 145000);
-b = constructParameter(elements, b_centers, b_radii, b_values, 700);
+s = constructParameter(elements, s_centers, s_radii, s_values, 2000);
+b = constructParameter(elements, b_centers, b_radii, b_values, 50);
 
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
