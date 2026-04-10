@@ -2,15 +2,15 @@
 clear all
 
 % specify our reference states
-f1 = 110;    % Hz
-f2 = 200;    % Hz
+f1 = 60;    % Hz
+f2 = 123;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 2;
+u3Amplitude = 4;
 amplification = 1;
-MeasurementAmplification = 1;
+MeasurementAmplification = 2;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -82,16 +82,18 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
+% create the space dependent parameters
+sourceValueDomain = 2; % B/A of domain
 
-eta_values = [0.02]; 
-eta_radii = [0.04];
+eta_values = [0.01]; % B/A of phantoms
+eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [145200];
-s_radii = [0.04];
+s_values = [145005]; % B/A of phantoms
+s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
-b_values = [701];
+b_values = [701]; % B/A of phantoms
 b_radii = [0.03];
 b_centers = [-0.1;-0.1];
 
@@ -131,8 +133,8 @@ excitations(:,1,1) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,1) = MeasurementAmplification.*sourceFrequency;
 excitations(:,1,2) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,2) = MeasurementAmplification.*sourceFrequency;
-excitations(:,1,3) = MeasurementAmplification.*u3Amplitude.*sourceConstant;
-excitations(:,2,3) = MeasurementAmplification.*u3Amplitude.*sourceFrequency;
+excitations(:,1,3) = u3Amplitude.*sourceConstant;
+excitations(:,2,3) = u3Amplitude.*sourceFrequency;
 %%
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
@@ -167,7 +169,6 @@ measurement_u1_harmonics = zeros(size(squeeze(U1(N,:,:))));
 measurement_u2_harmonics = zeros(size(squeeze(U2(N,:,:))));
 
 measurement_u3_harmonics = zeros(size(squeeze(U3(N,:,:))));
-
 
 for j=1:N
     measurement_u1_harmonics(j,elements.measurementPointsIdx) = squeeze(U1(N,j,elements.measurementPointsIdx)).';
@@ -471,7 +472,6 @@ end
 
 %%
 useSolutionAsLinPoint = true;
-
 
 if useSolutionAsLinPoint == true
 
