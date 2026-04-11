@@ -58,7 +58,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.008;
+meshSize = 0.01;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -85,9 +85,10 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [12]; % B/A of phantoms
+values = [4]; % B/A of phantoms
 radii = [0.03];
 diffusivityPhantoms = [0.0499]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.01];
 centers = [0; 0.1];
 
 massDensity = 1000; %kg/m^3
@@ -102,7 +103,7 @@ sourceValueDomain = 2; % B/A of domain
 
 eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
 
-s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
+s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
 
 b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii); % 1/b
 % the complex wavenumber, here we compute the square wave number

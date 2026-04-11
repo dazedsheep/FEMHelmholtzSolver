@@ -36,8 +36,34 @@ xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 %  xn.refState_3.b0 = xn.refState_3.b0 + (xdag.b - xn.refState_3.b0)*ml;
 %  xn.refState_3.eta0 = xn.refState_3.eta0 + (xdag.eta - xn.refState_3.eta0)*ml;
 
+% plot the set of parameters
+figure,
+plot_b = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),1./xn.refState_1.b0, 'facecolor', 'interp'); 
+title('Reconstructed b');
+view(0,90)  
+colorbar
+shading interp;
+figure,
+plot_s = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),xn.refState_1.s0./xn.refState_1.b0, 'facecolor', 'interp'); 
+title('Reconstructed s');
+view(0,90)  
+colorbar
+shading interp;
+figure,
+plot_eta = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),xn.refState_1.eta0, 'facecolor', 'interp'); 
+title('Reconstructed \eta');
+view(0,90)  
+colorbar
+shading interp;
+
 for newtonIter = 1:newtonIterations
 
+    set(plot_b, 'CData', 1./xn.refState_1.b0);
+    set(plot_s, 'CData', xn.refState_1.s0./xn.refState_1.b0);
+    set(plot_eta, 'CData', xn.refState_1.eta0./xn.refState_1.b0);
+    drawnow;
+    pause(0.1);
+    
     % in each Newton step we have to do a CG
 
     % A = K*K + P*P + alpha

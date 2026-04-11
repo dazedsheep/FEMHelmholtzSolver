@@ -10,7 +10,7 @@ omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 u3Amplitude = 15;
 amplification = 1;
-MeasurementAmplification = 10;
+MeasurementAmplification = 8;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -86,11 +86,11 @@ eta_values = [0.004]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
-s_values = [2005]; % B/A of phantoms
+s_values = [2007]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 
-b_values = [50.1]; % B/A of phantoms
+b_values = [50.25]; % B/A of phantoms
 b_radii = [0.03];
 b_centers = [-0.1;-0.1];
 
