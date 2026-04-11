@@ -6,7 +6,7 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.8;
+q = 0.7;
 
 CGIterations = 200;
 
@@ -58,9 +58,9 @@ shading interp;
 
 for newtonIter = 1:newtonIterations
 
-    set(plot_b, 'CData', 1./xn.refState_1.b0);
-    set(plot_s, 'CData', xn.refState_1.s0./xn.refState_1.b0);
-    set(plot_eta, 'CData', xn.refState_1.eta0./xn.refState_1.b0);
+    set(plot_b, 'CData', xn.refState_1.b0);
+    set(plot_s, 'CData', xn.refState_1.s0);
+    set(plot_eta, 'CData', xn.refState_1.eta0);
     drawnow;
     pause(0.1);
     
