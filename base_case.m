@@ -58,7 +58,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.01;
+meshSize = 0.008;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -687,7 +687,7 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh2,u2dist,1));
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
-CGTol = 1e-25;
+CGTol = 1e-20;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
