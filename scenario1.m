@@ -2,13 +2,13 @@
 clear all
 
 % specify our reference states
-f1 = 47;    % Hz
-f2 = 65;    % Hz
+f1 = 40;    % Hz
+f2 = 60;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 16;
+u3Amplitude = 15;
 amplification = 1;
 MeasurementAmplification = 9;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
@@ -82,7 +82,7 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
-eta_values = [0.0045]; % B/A of phantoms
+eta_values = [0.0035]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 

@@ -56,6 +56,12 @@ view(0,90)
 colorbar
 shading interp;
 
+% define parameter operators
+add = @(a,b) addParameters(a,b);
+minus = @(a,b) minusParameters(a,b);
+innerProduct = @(a,b) calcInnerProductParameters(a,b, elements);
+scalarMul = @(c,a) scalarMulParameters(c,a);
+
 for newtonIter = 1:newtonIterations
 
     set(plot_b, 'CData', xn.refState_1.b0);
@@ -132,7 +138,7 @@ for newtonIter = 1:newtonIterations
     % update variables
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
-    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100);
+    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100,innerProduct, add, minus, scalarMul);
     %[z, iters, res] = gradientDescent(elements, A, rhs, xn, CGTol, 100);
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||
