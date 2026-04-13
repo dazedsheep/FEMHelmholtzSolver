@@ -3,14 +3,14 @@ clear all
 
 % specify our reference states
 f1 = 40;    % Hz
-f2 = 60;    % Hz
+f2 = 25;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 15;
+u3Amplitude = 20;
 amplification = 1;
-MeasurementAmplification = 9;
+MeasurementAmplification = 10;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -83,10 +83,10 @@ N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
 eta_values = [0.0035]; % B/A of phantoms
-eta_radii = [0.03];
+eta_radii = [0.04];
 eta_centers = [0.0;0.1];
 
-s_values = [2006]; % B/A of phantoms
+s_values = [2007]; % B/A of phantoms
 s_radii = [0.03];
 s_centers = [0.1;-0.1];
 

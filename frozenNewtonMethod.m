@@ -15,8 +15,6 @@ xn = x0; % start at x0
 
 residue = ones(newtonIterations,4);
 
-% estimate the largest eigenvalue of A 
-
 xn.refState_1.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_2.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
