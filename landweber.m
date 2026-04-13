@@ -1,5 +1,16 @@
-function [x, k, stopres] = landweber(elements, A, b, x0, omega, tol, maxit)
+function [x, k, stopres] = landweber(elements, A, b, x0, tol, maxit)
 % This function assumes A* = A
+x = x0;
+% estimate step size by power iteration
+x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
+maxIt = 3;
+for k = 1:maxIt
+    Ax = A(x);
+    x = A(x);
+    x = scalarMulParameters(1/sqrt(calcInnerProductParameters(x,x, elements)), x);
+end
+omega = 0.9 * 1/calcInnerProductParameters(Ax,Ax,elements);
+
 x = x0;
 stopres = zeros(maxit,1);
 for k = 1:maxit
