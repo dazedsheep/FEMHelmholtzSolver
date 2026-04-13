@@ -639,9 +639,9 @@ preconditioner.refState_2.Mlapu0 = trapz(timeMesh.timeMesh2, abs(referenceStates
 preconditioner.refState_2.Mu0tt = trapz(timeMesh.timeMesh2, abs(referenceStates.u2ttSampled).^2,1);
 preconditioner.refState_2.Mu0sqtt = trapz(timeMesh.timeMesh2, abs(referenceStates.u2sqttSampled).^2,1);
 
-preconditioner.refState_3.Mlapu0 = trapz(timeMesh.timeMesh1, abs(referenceStates.u3LaplacianSampled).^2,1);
-preconditioner.refState_3.Mu0tt = trapz(timeMesh.timeMesh1, abs(referenceStates.u3ttSampled).^2,1);
-preconditioner.refState_3.Mu0sqtt = trapz(timeMesh.timeMesh1, abs(referenceStates.u3sqttSampled).^2,1);
+preconditioner.refState_3.Mlapu0 = trapz(timeMesh.timeMesh3, abs(referenceStates.u3LaplacianSampled).^2,1);
+preconditioner.refState_3.Mu0tt = trapz(timeMesh.timeMesh3, abs(referenceStates.u3ttSampled).^2,1);
+preconditioner.refState_3.Mu0sqtt = trapz(timeMesh.timeMesh3, abs(referenceStates.u3sqttSampled).^2,1);
 
 x0.refState_1.s0 = s0;
 x0.refState_1.b0 = b0;
