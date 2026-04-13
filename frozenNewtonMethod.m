@@ -1,4 +1,4 @@
-function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGTol, xdag)
+function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, CGPreconditionerParams, nIterations, nHarmonics, newtonIterations, NewtonTol, CGTol, xdag)
 
 N = nHarmonics;
 nIter = nIterations;
@@ -43,7 +43,9 @@ add = @(a,b) addParameters(a,b);
 minus = @(a,b) minusParameters(a,b);
 innerProduct = @(a,b) calcInnerProductParameters(a,b, elements);
 scalarMul = @(c,a) scalarMulParameters(c,a);
-
+% define the preconditioner operator for the conjugate gradient algorithm
+%PM = @(x) CGPreconditioner(x, CGPreconditionerParams);
+PM = @(x) x;
 for newtonIter = 1:newtonIterations
 
     % update figures
@@ -116,7 +118,7 @@ for newtonIter = 1:newtonIterations
     % update variables
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
-    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100,innerProduct, add, minus, scalarMul);
+    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, 100,innerProduct, add, minus, scalarMul, PM);
     %[z, iters, res] = gradientDescent(elements, A, rhs, xn, CGTol, 100);
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||

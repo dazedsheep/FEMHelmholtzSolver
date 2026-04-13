@@ -82,7 +82,7 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
-eta_values = [0.0035]; % B/A of phantoms
+eta_values = [0.003]; % B/A of phantoms
 eta_radii = [0.03];
 eta_centers = [0.0;0.1];
 
@@ -627,8 +627,21 @@ else
         error('Fourier coefficients of reference state 3 do not match.');
     end
 
-
 end
+
+
+% prepare the preconditioner
+preconditioner.refState_1.Mlapu0 = trapz(timeMesh.timeMesh1, abs(referenceStates.u1LaplacianSampled).^2,1);
+preconditioner.refState_1.Mu0tt = trapz(timeMesh.timeMesh1, abs(referenceStates.u1ttSampled).^2,1);
+preconditioner.refState_1.Mu0sqtt = trapz(timeMesh.timeMesh1, abs(referenceStates.u1sqttSampled).^2,1);
+
+preconditioner.refState_2.Mlapu0 = trapz(timeMesh.timeMesh2, abs(referenceStates.u2LaplacianSampled).^2,1);
+preconditioner.refState_2.Mu0tt = trapz(timeMesh.timeMesh2, abs(referenceStates.u2ttSampled).^2,1);
+preconditioner.refState_2.Mu0sqtt = trapz(timeMesh.timeMesh2, abs(referenceStates.u2sqttSampled).^2,1);
+
+preconditioner.refState_3.Mlapu0 = trapz(timeMesh.timeMesh1, abs(referenceStates.u3LaplacianSampled).^2,1);
+preconditioner.refState_3.Mu0tt = trapz(timeMesh.timeMesh1, abs(referenceStates.u3ttSampled).^2,1);
+preconditioner.refState_3.Mu0sqtt = trapz(timeMesh.timeMesh1, abs(referenceStates.u3sqttSampled).^2,1);
 
 x0.refState_1.s0 = s0;
 x0.refState_1.b0 = b0;
@@ -676,8 +689,7 @@ CGTol = 1e-60;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, preconditioner, nIter, N, 400, 1e-10, CGTol,xdag);
 %%
 point = [0.0;0.05];
 
