@@ -2,8 +2,8 @@
 clear all
 
 % specify our reference states
-f1 = 70;    % Hz
-f2 = 50;    % Hz
+f1 = 90;    % Hz
+f2 = 70;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 
 omega1 = 2*pi*f1;
@@ -91,7 +91,7 @@ values = [7, 7]; % B/A of phantoms
 radii = [0.03, 0.03];
 diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
 speedOfSoundPhantoms = [10.11, 10.11];
-centers = [0,-0.05; 0.05, -0.05];
+centers = [0,-0.05; 0.1, -0.05];
 
 massDensity = 1000; %kg/m^3
 
