@@ -163,7 +163,7 @@ elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measureme
 %elements.measurementPointsIdx = measurementPointsIdx;
 
 % do the measurement on the whole boundary
-elements.measurementPointsIdx = elements.boundaryIdx;
+%elements.measurementPointsIdx = elements.boundaryIdx;
 
 measurement_u1 = u1s(:,elements.measurementPointsIdx);
 measurement_u2 = u2s(:,elements.measurementPointsIdx);
@@ -186,7 +186,7 @@ end
 
 
 %%
-% pre compoute the gradient operator
+% pre compute the gradient operator
 p = elements.points;
 t = elements.tri(:,1:3);
 
@@ -676,7 +676,7 @@ adeta = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1sqttSampled);
 [~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
 [~,int_db] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.db.*adb);
 [~,int_deta] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.deta.*adeta);
-zz = -int_ds + int_db - int_deta
+zz = -int_ds + int_db - int_deta;
 
 %%
 % since we have the solutions, check how far from the solution our
