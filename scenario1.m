@@ -8,9 +8,9 @@ f3 = f1;    % frequency of third reference state = frequency of first reference 
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 20;
+u3Amplitude = 10;
 amplification = 1;
-MeasurementAmplification = 10;
+MeasurementAmplification = 5;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
