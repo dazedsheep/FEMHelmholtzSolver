@@ -87,8 +87,8 @@ nIter = 6;
 diffusivity = 0.05;
 values = [4]; % B/A of phantoms
 radii = [0.03];
-diffusivityPhantoms = [0.0499]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.01];
+diffusivityPhantoms = [0.051]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.15];
 centers = [0; 0.1];
 
 massDensity = 1000; %kg/m^3
@@ -239,7 +239,7 @@ testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,
 % for finer triangular meshes (high accuracy) these can be precomputed and
 % stored to speed up computation
 s0 = min(s).*ones(size(s));
-b0 = min(b).*ones(size(b));
+b0 = max(b).*ones(size(b));
 eta0 = zeros(size(eta));
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
