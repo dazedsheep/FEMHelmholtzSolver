@@ -97,7 +97,7 @@ for newtonIter = 1:newtonIterations
     [db_3, ds_3, deta_3] = calcAdjointStates((squeeze(Uadj_3(N,:,:))), omega3, timeMesh.timeMesh3, referenceStates.u3LaplacianSampled, referenceStates.u3ttSampled, referenceStates.u3sqttSampled);
     
     rhs = xn;
-
+    
     rhs.refState_1.eta0   = y.refState_1.eta0   + deta_1 + alpha.* (x0.refState_1.eta0  - xn.refState_1.eta0);
     rhs.refState_1.s0     = y.refState_1.s0     + ds_1   + alpha.* (x0.refState_1.s0    - xn.refState_1.s0);
     rhs.refState_1.b0     = y.refState_1.b0     + db_1   + alpha.* (x0.refState_1.b0    - xn.refState_1.b0);
@@ -111,7 +111,6 @@ for newtonIter = 1:newtonIterations
     rhs.refState_3.b0     = y.refState_3.b0    + db_3    + alpha.* (x0.refState_3.b0    - xn.refState_3.b0);
 
     % now we need to solve Az = rhs
-    % update variables
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
     [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, CGIterations, innerProduct, add, minus, scalarMul);
