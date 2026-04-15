@@ -12,7 +12,7 @@ omega3 = 2*pi*f3;
 
 u3Amplitude = 10;
 amplification = 1;
-MeasurementAmplification = 6;
+MeasurementAmplification = 5;
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -74,6 +74,15 @@ interiorIdx = setdiff(1:(size(elements.points,1)), fullboundaryIdx);
 elements.interiorIdx = interiorIdx;
 elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
+
+% specify the measurement manifold/discrete points on the boundary
+measurementEdge = 3; % positive quadrant edge
+
+% fetch the boundary points
+elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+
+% do the measurement on the whole boundary
+elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -153,7 +162,7 @@ sourceFrequency(boundaryPointsSourceIdx) = (gamma.*u1F(boundaryPointsSource(:,1)
 sourceConstant = zeros(size(elements.points,1),1);
 sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1Cgrad(boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
-%%
+%
 excitations = zeros(size(elements.points,1), N, 3);
 excitations(:,1,1) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,1) = MeasurementAmplification.*sourceFrequency;
@@ -161,30 +170,18 @@ excitations(:,1,2) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,2) = MeasurementAmplification.*sourceFrequency;
 excitations(:,1,3) = u3Amplitude.*sourceConstant;
 excitations(:,2,3) = u3Amplitude.*sourceFrequency;
-%%
+%% compute the actual solutions
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
 [cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
-%%
+%
 % compute the solutions on the time - space mesh
 u1s = calcSolution(timeMesh.timeMesh1, squeeze(U1(N,:,:)), omega1);
 u2s = calcSolution(timeMesh.timeMesh2, squeeze(U2(N,:,:)), omega2);
 u3s = calcSolution(timeMesh.timeMesh3, squeeze(U3(N,:,:)), omega3);
 
-%%
+%% measure at the boundary
 % define \Sigma our measurement manifold/discrete points
-% the triangulation already defines the the edges of our doimain 1:4
-% (circle sectors)
-
-measurementEdge = 3; % positive quadrant edge
-
-% fetch the boundary points
-elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
-
-%elements.measurementPointsIdx = measurementPointsIdx;
-
-% do the measurement on the whole boundary
-elements.measurementPointsIdx = elements.boundaryIdx;
 
 measurement_u1 = u1s(:,elements.measurementPointsIdx);
 measurement_u2 = u2s(:,elements.measurementPointsIdx);
