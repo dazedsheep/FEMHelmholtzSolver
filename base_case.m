@@ -82,7 +82,7 @@ measurementEdge = 3; % positive quadrant edge
 elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
 
 % do the measurement on the whole boundary
-%elements.measurementPointsIdx = elements.boundaryIdx;
+elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -110,9 +110,9 @@ N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
 % create the space dependent parameters
-sourceValueDomain = 2; % B/A of domain
+sourceValueDomain = 0; % B/A of domain
 
-eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
+eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
 
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
 

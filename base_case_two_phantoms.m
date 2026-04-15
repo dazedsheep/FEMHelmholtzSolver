@@ -60,7 +60,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.01;
+meshSize = 0.008;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -96,11 +96,18 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [5, 7, 6]; % B/A of phantoms
-radii = [0.03, 0.03, 0.03];
-diffusivityPhantoms = [0.051, 0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.15, 10.15, 10.15];
-centers = [0, -0.1, 0.1; 0.125, -0.05, -0.1];
+values = [7, 6]; % B/A of phantoms
+radii = [0.03, 0.03];
+diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.15, 10.15];
+centers = [-0.1, 0.1; -0.05, -0.1];
+
+% diffusivity = 0.05;
+% values = [8, 7, 6]; % B/A of phantoms
+% radii = [0.03, 0.03, 0.03];
+% diffusivityPhantoms = [0.051, 0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
+% speedOfSoundPhantoms = [10.15, 10.15, 10.15];
+% centers = [0, -0.1, 0.1; 0.125, -0.05, -0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -112,7 +119,7 @@ nIter = 6;
 % create the space dependent parameters
 sourceValueDomain = 2; % B/A of domain
 
-eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
+eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
 
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
 

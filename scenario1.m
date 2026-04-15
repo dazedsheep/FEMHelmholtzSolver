@@ -2,13 +2,13 @@
 clear all
 
 % specify our reference states
-f1 = 70;    % Hz
+f1 = 65;    % Hz
 f2 = 50;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 30;
+u3Amplitude = 35;
 amplification = 1;
 MeasurementAmplification = 20;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
