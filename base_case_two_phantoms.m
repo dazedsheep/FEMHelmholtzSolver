@@ -10,9 +10,9 @@ omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 
-u3Amplitude = 10;
+u3Amplitude = 15;
 amplification = 1;
-MeasurementAmplification = 5;
+MeasurementAmplification = 8;
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -96,11 +96,11 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [7, 7]; % B/A of phantoms
-radii = [0.03, 0.03];
-diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.11, 10.11];
-centers = [0,-0.1; 0.15, -0.1];
+values = [5, 7, 6]; % B/A of phantoms
+radii = [0.03, 0.03, 0.03];
+diffusivityPhantoms = [0.051, 0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.15, 10.15, 10.15];
+centers = [0, -0.05, 0.1; 0.125, -0.1, -0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -125,19 +125,19 @@ kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], 
 % frequency
 %% plot true parameters
 figure,
-plot_handles.plot_b_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
 title('True b');
 view(0,90)  
 colorbar
 shading interp;
 figure,
-plot_handles.plot_s_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
 title('True s');
 view(0,90)  
 colorbar
 shading interp;
 figure,
-plot_handles.plot_eta_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
 title('True \eta');
 view(0,90)  
 colorbar
@@ -575,6 +575,6 @@ CGTol = 1e-50;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+CGIterations = 150;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol,xdag);
 

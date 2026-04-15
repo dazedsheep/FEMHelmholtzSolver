@@ -82,7 +82,7 @@ measurementEdge = 3; % positive quadrant edge
 elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
 
 % do the measurement on the whole boundary
-elements.measurementPointsIdx = elements.boundaryIdx;
+%elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -572,9 +572,10 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
 CGTol = 1e-50;
+
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+CGIterations = 150;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol,xdag);
 
