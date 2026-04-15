@@ -100,7 +100,7 @@ values = [5, 7, 6]; % B/A of phantoms
 radii = [0.03, 0.03, 0.03];
 diffusivityPhantoms = [0.051, 0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
 speedOfSoundPhantoms = [10.15, 10.15, 10.15];
-centers = [0, -0.05, 0.1; 0.125, -0.1, -0.1];
+centers = [0, -0.1, 0.1; 0.125, -0.05, -0.1];
 
 massDensity = 1000; %kg/m^3
 

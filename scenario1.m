@@ -84,19 +84,19 @@ nIter = 6;
 
 eta_values = [0.00043]; 
 eta_radii = [0.03];
-eta_centers = [0.0;0.1];
+eta_centers = [0.0;0.125];
 
-s_values = [2004.16]; 
+s_values = [2003]; 
 s_radii = [0.03];
-s_centers = [0.1;-0.1];
+s_centers = [0.1;-0.075];
 
-b_values = [20.2]; 
+b_values = [20.1]; 
 b_radii = [0.03];
-b_centers = [-0.1;-0.1];
+b_centers = [-0.1;-0.05];
 
-eta = constructParameter(elements, eta_centers, eta_radii, eta_values, 0);
-s = constructParameter(elements, s_centers, s_radii, s_values, 2000);
-b = constructParameter(elements, b_centers, b_radii, b_values, 20);
+eta = constructParameterSmooth(elements, eta_centers, eta_radii, eta_values, 0);
+s = constructParameterSmooth(elements, s_centers, s_radii, s_values, 2000);
+b = constructParameterSmooth(elements, b_centers, b_radii, b_values, 20);
 
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
