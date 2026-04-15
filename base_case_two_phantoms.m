@@ -96,11 +96,11 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [7]; % B/A of phantoms
-radii = [0.03];
-diffusivityPhantoms = [0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.11];
-centers = [0; 0.1];
+values = [7, 7]; % B/A of phantoms
+radii = [0.03, 0.03];
+diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.11, 10.11];
+centers = [0,-0.1; 0.15, -0.1];
 
 massDensity = 1000; %kg/m^3
 
