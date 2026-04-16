@@ -79,10 +79,10 @@ elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2))
 measurementEdge = 3; % positive quadrant edge
 
 % fetch the boundary points
-elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+elements.measurementPointsIdx = elements.edges((elements.edges(:,3) ~= measurementEdge),1);
 
 % do the measurement on the whole boundary
-elements.measurementPointsIdx = elements.boundaryIdx;
+%elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -96,7 +96,7 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [7]; % B/A of phantoms
+values = [0,0]; % B/A of phantoms
 radii = [0.03];
 diffusivityPhantoms = [0.051]; % this allows to adjust the diffusivity for the phantoms
 speedOfSoundPhantoms = [10.11];
@@ -110,9 +110,9 @@ N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
 % create the space dependent parameters
-sourceValueDomain = 2; % B/A of domain
+sourceValueDomain = 0; % B/A of domain
 
-eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, true); %nonlinearity scaled by 1/b
+eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
 
 s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
 
@@ -465,15 +465,15 @@ if useSolutionAsLinPoint == true
 
     referenceStates.u1LaplacianSampled = u1lap;
     referenceStates.u1ttSampled = u1tt;
-    referenceStates.u1sqttSampled = u1sqtt;
+    referenceStates.u1sqttSampled = 0;
 
     referenceStates.u2LaplacianSampled = u2lap;
     referenceStates.u2ttSampled = u2tt;
-    referenceStates.u2sqttSampled = u2sqtt;
+    referenceStates.u2sqttSampled = 0;
 
     referenceStates.u3LaplacianSampled = u3lap;
     referenceStates.u3ttSampled = u3tt;
-    referenceStates.u3sqttSampled = u3sqtt;
+    referenceStates.u3sqttSampled = 0;
 
 else
     kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
@@ -492,15 +492,15 @@ else
 
     referenceStates.u1LaplacianSampled = u1LaplacianSampled;
     referenceStates.u1ttSampled = u1ttSampled;
-    referenceStates.u1sqttSampled = u1sqttSampled;
+    referenceStates.u1sqttSampled = 0;
 
     referenceStates.u2LaplacianSampled = u2LaplacianSampled;
     referenceStates.u2ttSampled = u2ttSampled;
-    referenceStates.u2sqttSampled = u2sqttSampled;
+    referenceStates.u2sqttSampled = 0;
 
     referenceStates.u3LaplacianSampled = u3LaplacianSampled;
     referenceStates.u3ttSampled = u3ttSampled;
-    referenceStates.u3sqttSampled = u3sqttSampled;
+    referenceStates.u3sqttSampled = 0;
 
     % check whether our fourier transform is correct
     u0_1sampledrecon = calcSolution(timeMesh.timeMesh1, x0.refState_1.u0, omega1);
