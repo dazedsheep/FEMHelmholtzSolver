@@ -1,25 +1,29 @@
-function trisurfwithboundary(elements, y)
+function trisurfwithboundary(elements, y, theta1, theta2, radius, color, linewidth, titleStr)
 
-figure, 
+figure,
+
 trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), y, 'facecolor', 'interp'); 
 shading interp;
-
+title(titleStr);
 hold on;
-
-r = 0.2;
-theta1 = pi/2;           % start angle (adjust as needed)
-theta2 = 2*pi;       % end angle (adjust as needed)
+view(0,90)  
+colorbar
+xint = [0.14 0.22];
+yint = [0.14 0.22];
+annotation("textarrow",xint,yint,String="\Sigma");
+set(gca,'fontname','Arial')  % Set it to times
+set(gca, 'FontWeight', 'bold')
 
 theta = linspace(theta1, theta2, 200);
 
 % Parametric equation of the arc
-x_arc = r * cos(theta);
-y_arc = r * sin(theta);
+x_arc = radius * cos(theta);
+y_arc = radius * sin(theta);
 
 % Plot the boundary curve (slightly lifted in z for visibility)
 z_arc = max(y(:)) * ones(size(x_arc));
 
-plot3(x_arc, y_arc, z_arc, 'k', 'LineWidth', 2);
+plot3(x_arc, y_arc, z_arc, color, 'LineWidth', linewidth);
 
 hold off;
 
