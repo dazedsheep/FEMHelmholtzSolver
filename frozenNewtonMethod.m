@@ -74,9 +74,9 @@ for newtonIter = 1:newtonIterations
     % residual in L^2(\Sigma), this residue is not the one we optimise,
     % this is just to check how far we are from the measurement
     % use the boundary mass matrix of our FEM
-    residue(newtonIter, 1) = sum(abs(residual_1).^2,1) * elements.tBM * sum(abs(residual_1).^2,1).';
-    residue(newtonIter, 2) = sum(abs(residual_2).^2,1) * elements.tBM * sum(abs(residual_2).^2,1).';
-    residue(newtonIter, 3) = sum(abs(residual_3).^2,1) * elements.tBM * sum(abs(residual_3).^2,1).';
+    residue(newtonIter, 1) = sqrt(sum(abs(residual_1).^2,1)) * elements.tBM * sqrt(sum(abs(residual_1).^2,1)).';
+    residue(newtonIter, 2) = sqrt(sum(abs(residual_2).^2,1)) * elements.tBM * sqrt(sum(abs(residual_2).^2,1)).';
+    residue(newtonIter, 3) = sqrt(sum(abs(residual_3).^2,1)) * elements.tBM * sqrt(sum(abs(residual_3).^2,1)).';
     residue(newtonIter, 4) = alpha*calcInnerProductParameters(minusParameters(x0,xn),minusParameters(x0,xn), elements);
 
     residue(newtonIter, 5) = sqrt(residue(newtonIter, 1) + residue(newtonIter, 2) + residue(newtonIter, 3) + residue(newtonIter,4));
@@ -145,9 +145,9 @@ for newtonIter = 1:newtonIterations
     residual_7(:,elements.measurementPointsIdx) = measU3(:,elements.measurementPointsIdx) - squeeze(DU_3(N,:,elements.measurementPointsIdx)) - squeeze(Un_3(N,:,elements.measurementPointsIdx));
 
     xdiff = minusParameters(x0,z);
-    residue(newtonIter, 6) = sum(abs(residual_5).^2,1) * elements.tBM * sum(abs(residual_5).^2,1).';
-    residue(newtonIter, 7) = sum(abs(residual_6).^2,1) * elements.tBM * sum(abs(residual_6).^2,1).';
-    residue(newtonIter, 8) = sum(abs(residual_7).^2,1) * elements.tBM * sum(abs(residual_7).^2,1).';
+    residue(newtonIter, 6) = sqrt(sum(abs(residual_5).^2,1)) * elements.tBM * sqrt(sum(abs(residual_5).^2,1)).';
+    residue(newtonIter, 7) = sqrt(sum(abs(residual_6).^2,1)) * elements.tBM * sqrt(sum(abs(residual_6).^2,1)).';
+    residue(newtonIter, 8) = sqrt(sum(abs(residual_7).^2,1)) * elements.tBM * sqrt(sum(abs(residual_7).^2,1)).';
     residue(newtonIter, 9) = alpha*calcInnerProductParameters(xdiff,xdiff, elements);
     residue(newtonIter, 10) = sqrt(residue(newtonIter, 6) + residue(newtonIter, 7) + residue(newtonIter, 8) + residue(newtonIter,9));
     fprintf('Iteration %d, current residual for J(x,x_n): %e\n', newtonIter, residue(newtonIter, 10));
