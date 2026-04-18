@@ -446,9 +446,9 @@ if useSolutionAsLinPoint == true
                 conj(squeeze(x0.refState_3.u0(minusidx+1,:))) .* ...
                 squeeze(x0.refState_3.u0(plusidx+1,:));
         end
-        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m;
-        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
-        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
+        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m * 1/2;
+        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2* 1/2;
+        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3 * 1/2;
     end
     u1tt = calcSolution(timeMesh.timeMesh1, u1ttf, omega1);
     u1lap = calcSolution(timeMesh.timeMesh1, u1laplacef,omega1);
