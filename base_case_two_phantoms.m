@@ -10,9 +10,9 @@ omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 
-u3Amplitude = 15;
+u3Amplitude = 30;
 amplification = 1;
-MeasurementAmplification = 8;
+MeasurementAmplification = 10;
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -76,10 +76,13 @@ elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
 % specify the measurement manifold/discrete points on the boundary
-measurementEdge = 3; % positive quadrant edge
+measurementEdge3 = 2; % positive quadrant edge
+measurementEdge4 = 1;
+first = (elements.edges(:,3) ~= measurementEdge3);
+second = (elements.edges(:,3) ~= measurementEdge4);
 
 % fetch the boundary points
-elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+elements.measurementPointsIdx = elements.edges(first & second,1);
 
 % do the measurement on the whole boundary
 elements.measurementPointsIdx = elements.boundaryIdx;
@@ -96,11 +99,11 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [7, 6]; % B/A of phantoms
+values = [15, 5]; % B/A of phantoms
 radii = [0.03, 0.03];
 diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.15, 10.15];
-centers = [-0.1, 0.1; -0.05, -0.1];
+speedOfSoundPhantoms = [10.11, 10.15];
+centers = [-0.1, 0.1; -0.1, -0.1];
 
 % diffusivity = 0.05;
 % values = [8, 7, 6]; % B/A of phantoms

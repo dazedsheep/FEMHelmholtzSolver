@@ -82,10 +82,10 @@ elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2))
 measurementEdge = 3; % positive quadrant edge
 
 % fetch the boundary points
-% elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+ elements.measurementPointsIdx = elements.edges((elements.edges(:,3) ~= measurementEdge),1);
 
 % do the measurement on the whole boundary
-elements.measurementPointsIdx = elements.boundaryIdx;
+%elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
