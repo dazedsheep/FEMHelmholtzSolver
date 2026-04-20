@@ -1,4 +1,4 @@
-function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGTol, xdag)
+function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGIterations, CGTol, xdag)
 
 N = nHarmonics;
 nIter = nIterations;
@@ -6,19 +6,17 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.7;
-
-CGIterations = 150;
+q = 0.65;
 
 % do not start in x0, for now use our xdag
 xn = x0; % start at x0
 
 residue = ones(newtonIterations,4);
 
+% this has to be refactored, it is used if we have convection
 xn.refState_1.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_2.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
-
 
 % for testint purposes
 % ml = 0.1;
@@ -75,9 +73,10 @@ for newtonIter = 1:newtonIterations
 
     % residual in L^2(\Sigma), this residue is not the one we optimise,
     % this is just to check how far we are from the measurement
-    [~, residue(newtonIter, 1)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_1).^2,1));
-    [~, residue(newtonIter, 2)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_2).^2,1));
-    [~, residue(newtonIter, 3)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_3).^2,1));
+    % use the boundary mass matrix of our FEM
+    residue(newtonIter, 1) = sqrt(sum(abs(residual_1).^2,1)) * elements.tBM * sqrt(sum(abs(residual_1).^2,1)).';
+    residue(newtonIter, 2) = sqrt(sum(abs(residual_2).^2,1)) * elements.tBM * sqrt(sum(abs(residual_2).^2,1)).';
+    residue(newtonIter, 3) = sqrt(sum(abs(residual_3).^2,1)) * elements.tBM * sqrt(sum(abs(residual_3).^2,1)).';
     residue(newtonIter, 4) = alpha*calcInnerProductParameters(minusParameters(x0,xn),minusParameters(x0,xn), elements);
 
     residue(newtonIter, 5) = sqrt(residue(newtonIter, 1) + residue(newtonIter, 2) + residue(newtonIter, 3) + residue(newtonIter,4));
@@ -146,9 +145,9 @@ for newtonIter = 1:newtonIterations
     residual_7(:,elements.measurementPointsIdx) = measU3(:,elements.measurementPointsIdx) - squeeze(DU_3(N,:,elements.measurementPointsIdx)) - squeeze(Un_3(N,:,elements.measurementPointsIdx));
 
     xdiff = minusParameters(x0,z);
-    [~, residue(newtonIter, 6)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_5).^2,1));
-    [~, residue(newtonIter, 7)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_6).^2,1));
-    [~, residue(newtonIter, 8)] = integrate_fun_trimesh(elements.opoints, elements.otri, sum(abs(residual_7).^2,1));
+    residue(newtonIter, 6) = sqrt(sum(abs(residual_5).^2,1)) * elements.tBM * sqrt(sum(abs(residual_5).^2,1)).';
+    residue(newtonIter, 7) = sqrt(sum(abs(residual_6).^2,1)) * elements.tBM * sqrt(sum(abs(residual_6).^2,1)).';
+    residue(newtonIter, 8) = sqrt(sum(abs(residual_7).^2,1)) * elements.tBM * sqrt(sum(abs(residual_7).^2,1)).';
     residue(newtonIter, 9) = alpha*calcInnerProductParameters(xdiff,xdiff, elements);
     residue(newtonIter, 10) = sqrt(residue(newtonIter, 6) + residue(newtonIter, 7) + residue(newtonIter, 8) + residue(newtonIter,9));
     fprintf('Iteration %d, current residual for J(x,x_n): %e\n', newtonIter, residue(newtonIter, 10));

@@ -10,9 +10,9 @@ omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 
-u3Amplitude = 10;
+u3Amplitude = 10; % amplification of u3 only
 amplification = 1;
-MeasurementAmplification = 5;
+MeasurementAmplification = 5; % this amplifies u1 and u2
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -66,7 +66,7 @@ meshSize = 0.01;
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
 % prepare FEM matrices a priori
-[elements.M_t, elements.tBM,  elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
+[elements.M_t, elements.tBM, elements.M, elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
 
 % pre-compute some useful things w.r.t. the triangular mesh
 fullboundaryIdx = elements.edges(:,1);
@@ -76,7 +76,10 @@ elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
 % specify the measurement manifold/discrete points on the boundary
-measurementEdge = 3; % positive quadrant edge
+measurementEdge3 = 1; % positive quadrant edge
+measurementEdge4 = 2;
+first = (elements.edges(:,3) ~= measurementEdge3);
+second = (elements.edges(:,3) ~= measurementEdge4);
 
 % fetch the boundary points
 elements.measurementPointsIdx = elements.edges((elements.edges(:,3) ~= measurementEdge),1);
@@ -193,7 +196,6 @@ measurement_u2_harmonics = zeros(size(squeeze(U2(N,:,:))));
 
 measurement_u3_harmonics = zeros(size(squeeze(U3(N,:,:))));
 
-
 for j=1:N
     measurement_u1_harmonics(j,elements.measurementPointsIdx) = squeeze(U1(N,j,elements.measurementPointsIdx)).';
 
@@ -201,8 +203,6 @@ for j=1:N
 
     measurement_u3_harmonics(j,elements.measurementPointsIdx) = squeeze(U3(N,j,elements.measurementPointsIdx)).';
 end
-
-
 %%
 % pre compute the gradient operator
 p = elements.points;
@@ -447,9 +447,9 @@ if useSolutionAsLinPoint == true
                 conj(squeeze(x0.refState_3.u0(minusidx+1,:))) .* ...
                 squeeze(x0.refState_3.u0(plusidx+1,:));
         end
-        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m;
-        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
-        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
+        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m * 1/2;
+        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2 * 1/2;
+        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3 * 1/2;
     end
     u1tt = calcSolution(timeMesh.timeMesh1, u1ttf, omega1);
     u1lap = calcSolution(timeMesh.timeMesh1, u1laplacef,omega1);
@@ -572,9 +572,10 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
 CGTol = 1e-50;
+
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+CGIterations = 150;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol,xdag);
 

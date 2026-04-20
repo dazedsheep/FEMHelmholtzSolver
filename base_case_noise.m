@@ -10,9 +10,12 @@ omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 
-u3Amplitude = 15;
+% specify the noise level (relative)
+noise = 0.001;
+
+u3Amplitude = 10;
 amplification = 1;
-MeasurementAmplification = 8;
+MeasurementAmplification = 5;
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -60,7 +63,7 @@ brad = 0.2;
 domain = [bcenter, brad];
 
 % specify the mesh parameter
-meshSize = 0.008;
+meshSize = 0.01;
 
 % compute the triangle mesh
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
@@ -79,7 +82,7 @@ elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2))
 measurementEdge = 3; % positive quadrant edge
 
 % fetch the boundary points
-elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+% elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
 
 % do the measurement on the whole boundary
 elements.measurementPointsIdx = elements.boundaryIdx;
@@ -96,18 +99,11 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [7, 6]; % B/A of phantoms
-radii = [0.03, 0.03];
-diffusivityPhantoms = [0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.15, 10.15];
-centers = [-0.1, 0.1; -0.05, -0.1];
-
-% diffusivity = 0.05;
-% values = [8, 7, 6]; % B/A of phantoms
-% radii = [0.03, 0.03, 0.03];
-% diffusivityPhantoms = [0.051, 0.051, 0.051]; % this allows to adjust the diffusivity for the phantoms
-% speedOfSoundPhantoms = [10.15, 10.15, 10.15];
-% centers = [0, -0.1, 0.1; 0.125, -0.05, -0.1];
+values = [7]; % B/A of phantoms
+radii = [0.03];
+diffusivityPhantoms = [0.051]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [10.11];
+centers = [0; 0.1];
 
 massDensity = 1000; %kg/m^3
 
@@ -117,7 +113,7 @@ N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
 % create the space dependent parameters
-sourceValueDomain = 2; % B/A of domain
+sourceValueDomain = 0; % B/A of domain
 
 eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
 
@@ -132,19 +128,19 @@ kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], 
 % frequency
 %% plot true parameters
 figure,
-trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
+plot_handles.plot_b_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
 title('True b');
 view(0,90)  
 colorbar
 shading interp;
 figure,
-trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
+plot_handles.plot_s_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
 title('True s');
 view(0,90)  
 colorbar
 shading interp;
 figure,
-trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
+plot_handles.plot_eta_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
 title('True \eta');
 view(0,90)  
 colorbar
@@ -200,15 +196,36 @@ measurement_u2_harmonics = zeros(size(squeeze(U2(N,:,:))));
 
 measurement_u3_harmonics = zeros(size(squeeze(U3(N,:,:))));
 
-
+% generate some Gaussian noise
+noiseVector = randn(3,N,size(elements.measurementPointsIdx,1)) + 1i.*randn(3,N,size(elements.measurementPointsIdx,1));
+M_b_meas = elements.tBM(elements.measurementPointsIdx,elements.measurementPointsIdx);
 for j=1:N
     measurement_u1_harmonics(j,elements.measurementPointsIdx) = squeeze(U1(N,j,elements.measurementPointsIdx)).';
+    
+    normalised_noise_u1 = 1./sqrt(squeeze(noiseVector(1,j,:))' * M_b_meas * squeeze(noiseVector(1,j,:))) * squeeze(noiseVector(1,j,:));
+    noise_u1 = noise * sqrt(measurement_u1_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u1_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u1;
+    
+    % additive white noise
+    measurement_u1_harmonics(j,elements.measurementPointsIdx) = measurement_u1_harmonics(j,elements.measurementPointsIdx) + noise_u1.';
+
 
     measurement_u2_harmonics(j,elements.measurementPointsIdx) = squeeze(U2(N,j,elements.measurementPointsIdx)).';
 
-    measurement_u3_harmonics(j,elements.measurementPointsIdx) = squeeze(U3(N,j,elements.measurementPointsIdx)).';
-end
+    normalised_noise_u2 = 1./sqrt(squeeze(noiseVector(2,j,:))' * M_b_meas * squeeze(noiseVector(2,j,:))) * squeeze(noiseVector(2,j,:));
+    noise_u2 = noise * sqrt(measurement_u2_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u2_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u2;
+    
+    % additive white noise
+    measurement_u2_harmonics(j,elements.measurementPointsIdx) = measurement_u2_harmonics(j,elements.measurementPointsIdx) + noise_u2.';
 
+
+    measurement_u3_harmonics(j,elements.measurementPointsIdx) = squeeze(U3(N,j,elements.measurementPointsIdx)).';
+
+    normalised_noise_u3 = 1./sqrt(squeeze(noiseVector(3,j,:))' * M_b_meas * squeeze(noiseVector(3,j,:))) * squeeze(noiseVector(3,j,:));
+    noise_u3 = noise * sqrt(measurement_u3_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u3_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u3;
+    
+    % additive white noise
+    measurement_u3_harmonics(j,elements.measurementPointsIdx) = measurement_u3_harmonics(j,elements.measurementPointsIdx) + noise_u3.';
+end
 
 %%
 % pre compute the gradient operator
@@ -579,6 +596,7 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
 CGTol = 1e-50;
+
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;

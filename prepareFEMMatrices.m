@@ -1,4 +1,4 @@
-function [M_t, tBM, K, rowK, colK] = prepareFEMMatrices(elements)
+function [M_t, tBM, M, K, rowK, colK] = prepareFEMMatrices(elements)
 
 % extract nodes numbers of the 3 vertices of each triangle
 n1x = elements.points(elements.tri(:,1),1).';
@@ -56,5 +56,9 @@ bcol = elements.bedges(:,[1 1 2 2]).';
 
 % sparse boundary mass matrix
 tBM = sparse(brow, bcol, t_bM, size(elements.points,1),size(elements.points,1));
+
+% mass matrix
+M = sparse(rowK,colK, M_t, size(elements.points,1),size(elements.points,1));
+
 end
 

@@ -66,7 +66,7 @@ meshSize = 0.01;
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
 % prepare FEM matrices a priori
-[elements.M_t, elements.tBM,  elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
+[elements.M_t, elements.tBM, elements.M, elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
 
 % pre-compute some useful things w.r.t. the triangular mesh
 fullboundaryIdx = elements.edges(:,1);
@@ -578,6 +578,6 @@ CGTol = 1e-50;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+CGIterations = 150;
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol,xdag);
 
