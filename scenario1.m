@@ -8,9 +8,9 @@ f3 = f1;    % frequency of third reference state = frequency of first reference 
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 12;
+u3Amplitude = 14;
 amplification = 1;
-MeasurementAmplification = 5;
+MeasurementAmplification = 7;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -85,10 +85,10 @@ nIter = 6;
 % define a phantom in our domain with different speed of sound, diffusivity
 % and nonlinearity parameter
 diffusivity = 0.05;
-values = [0,12,0]; % B/A of phantoms
-radii = [0.03, 0.04, 0.03];
-diffusivityPhantoms = [0.05, 0.05, 0.0504]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.02,10,sqrt(10^2/diffusivity*diffusivityPhantoms(3))];
+values = [0,7,0]; % B/A of phantoms
+radii = [0.03, 0.03, 0.03];
+diffusivityPhantoms = [0.05, 0.05, 1/(1/(0.05) + 0.01)]; % this allows to adjust the diffusivity for the phantoms
+speedOfSoundPhantoms = [sqrt((2000+2)*0.05),10,sqrt(10^2/diffusivity*diffusivityPhantoms(3))];
 centers = [0.0, 0.1, -0.1; 0.125, -0.075, -0.05];
 
 massDensity = 1000; %kg/m^3
@@ -255,7 +255,7 @@ testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,
 % for finer triangular meshes (high accuracy) these can be precomputed and
 % stored to speed up computation
 s0 = min(s).*ones(size(s));
-b0 = max(b).*ones(size(b));
+b0 = min(b).*ones(size(b));
 eta0 = zeros(size(eta));
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;

@@ -6,7 +6,7 @@ nIter = nIterations;
 excitationsReferenceState = excitations;
 
 alpha = 1; % alpha0
-q = 0.7;
+q = 0.6;
 
 % do not start in x0, for now use our xdag
 xn = x0; % start at x0
