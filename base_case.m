@@ -82,7 +82,7 @@ first = (elements.edges(:,3) ~= measurementEdge3);
 second = (elements.edges(:,3) ~= measurementEdge4);
 
 % fetch the boundary points
-elements.measurementPointsIdx = elements.edges((elements.edges(:,3) ~= measurementEdge),1);
+elements.measurementPointsIdx = elements.edges(first,1);
 
 % do the measurement on the whole boundary
 %elements.measurementPointsIdx = elements.boundaryIdx;
