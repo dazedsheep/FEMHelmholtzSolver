@@ -37,6 +37,7 @@ u3laplace = @(t,x,y) amplification.*u3Amplitude.*4.* (cos(omega3 .* t) + 2);
 u3tt = @(t,x,y) amplification.*u3Amplitude.*(x.^2 + y.^2 + 1) .* ((-1).*omega3.^2.*cos(omega3 .* t) );
 u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t) + cos(2.*omega3.*t));
 
+useSolutionAsLinPoint = true;
 
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
@@ -87,10 +88,10 @@ nIter = 6;
 diffusivity = 0.05;
 values = [0,7,0]; % B/A of phantoms
 radii = [0.03, 0.03, 0.03];
-diffusivityPhantoms = [0.05, 0.05, 1/(1/(0.05) + 0.01)]; % this allows to adjust the diffusivity for the phantoms
+diffusivityPhantoms = [0.05, 0.05, 1/(1/(0.05) + 0.02)]; % this allows to adjust the diffusivity for the phantoms
 speedOfSoundPhantoms = [sqrt((2000+2)*0.05),10,sqrt(10^2/diffusivity*diffusivityPhantoms(3))];
 centers = [0.0, 0.1, -0.1; 0.125, -0.075, -0.05];
-
+l
 massDensity = 1000; %kg/m^3
 
 speed_of_sound = 10;
@@ -383,7 +384,6 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
 end
 
 %%
-useSolutionAsLinPoint = true;
 
 if useSolutionAsLinPoint == true
 
