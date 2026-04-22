@@ -2,15 +2,15 @@
 clear all
 
 % specify our reference states
-f1 = 80;    % Hz
-f2 = 60;    % Hz
+f1 = 75;    % Hz
+f2 = 55;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-u3Amplitude = 14;
+u3Amplitude = 8;
 amplification = 1;
-MeasurementAmplification = 7;
+MeasurementAmplification = 2;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -91,7 +91,7 @@ radii = [0.03, 0.03, 0.03];
 diffusivityPhantoms = [0.05, 0.05, 1/(1/(0.05) + 0.02)]; % this allows to adjust the diffusivity for the phantoms
 speedOfSoundPhantoms = [sqrt((2000+2)*0.05),10,sqrt(10^2/diffusivity*diffusivityPhantoms(3))];
 centers = [0.0, 0.1, -0.1; 0.125, -0.075, -0.05];
-l
+
 massDensity = 1000; %kg/m^3
 
 speed_of_sound = 10;
