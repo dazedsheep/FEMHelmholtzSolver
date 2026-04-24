@@ -1,4 +1,4 @@
-function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGIterations, CGTol, xdag)
+function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGIterations, CGTol)
 
 N = nHarmonics;
 nIter = nIterations;
@@ -12,11 +12,6 @@ q = 0.6;
 xn = x0; % start at x0
 
 residue = ones(newtonIterations,4);
-
-% this has to be refactored, it is used if we have convection
-xn.refState_1.eta0 = min(xdag.eta).*ones(size(xdag.eta));
-xn.refState_2.eta0 = min(xdag.eta).*ones(size(xdag.eta));
-xn.refState_3.eta0 = min(xdag.eta).*ones(size(xdag.eta));
 
 % for testint purposes
 % ml = 0.1;
