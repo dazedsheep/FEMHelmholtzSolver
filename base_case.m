@@ -127,25 +127,76 @@ kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], 
 % construct the boundary excitations (same source just with different
 % frequency
 %% plot true parameters
-figure,
-plot_handles.plot_b_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
+% figure,
+% plot_handles.plot_b_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
+% title('True b');
+% view(0,90)  
+% colorbar
+% shading interp;
+% figure,
+% plot_handles.plot_s_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
+% title('True s');
+% view(0,90)  
+% colorbar
+% shading interp;
+% figure,
+% plot_handles.plot_eta_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
+% title('True \eta');
+% view(0,90)  
+% colorbar
+% shading interp;
+%% prepare video plot (we show the true parameters in the first row, and the reconstructed ones in the second row
+radius = 0.2;
+theta = linspace(pi/2, 2*pi, 200);
+
+% Parametric equation of the arc
+x_arc = radius * cos(theta);
+y_arc = radius * sin(theta);
+
+plot_handles.video.fig = figure('Position', [100 100 1300 600]);
+set(0, 'CurrentFigure', plot_handles.video.fig);
+plot_handles.video.true_b = subplot(2,3,1,'Parent',plot_handles.video.fig);
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp','Parent', plot_handles.video.true_b);
+hold on;
+posi = get(plot_handles.video.true_b, 'position');
+xint = [posi(1)+0.01 posi(1)+0.03];
+yint = [posi(2)+0.015 posi(2)+0.03];
+annotation("textarrow",xint,yint,String="\Sigma");
+z_arc = max(b(:)) * ones(size(x_arc));
+plot3(x_arc, y_arc, z_arc, 'k', 'LineWidth', 3);
+hold off;
 title('True b');
 view(0,90)  
 colorbar
 shading interp;
-figure,
-plot_handles.plot_s_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
+plot_handles.video.true_s = subplot(2,3,2,'Parent',plot_handles.video.fig);
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), s, 'facecolor', 'interp','Parent', plot_handles.video.true_s);
+hold on;
+posi = get(plot_handles.video.true_s, 'position');
+xint = [posi(1)+0.01 posi(1)+0.03];
+yint = [posi(2)+0.015 posi(2)+0.03];
+annotation("textarrow",xint,yint,String="\Sigma");
+z_arc = max(s(:)) * ones(size(x_arc));
+plot3(x_arc, y_arc, z_arc, 'k', 'LineWidth', 3);
+hold off;
 title('True s');
 view(0,90)  
 colorbar
 shading interp;
-figure,
-plot_handles.plot_eta_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
+plot_handles.video.true_eta= subplot(2,3,3,'Parent',plot_handles.video.fig);
+trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2), eta, 'facecolor', 'interp','Parent', plot_handles.video.true_eta);
+hold on;
+posi = get(plot_handles.video.true_eta, 'position');
+xint = [posi(1)+0.01 posi(1)+0.03];
+yint = [posi(2)+0.015 posi(2)+0.03];
+annotation("textarrow",xint,yint,String="\Sigma");
+z_arc = max(eta(:)) * ones(size(x_arc));
+plot3(x_arc, y_arc, z_arc, 'k', 'LineWidth', 3);
+hold off;
 title('True \eta');
 view(0,90)  
 colorbar
 shading interp;
-
 %% prepare the source(s)
 sourceEdge = 1; % we impose the source on the boundary (negative quadrant)
 %boundaryPointsSourceIdx = elements.edges((elements.edges(:,3) == sourceEdge),1);
@@ -576,6 +627,10 @@ CGTol = 1e-50;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-CGIterations = 150;
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol);
+CGIterations = 60;
+% create video file, h.264 encoded
+plot_handles.video.video_handle = VideoWriter('paramrecon_base_case.mp4','MPEG-4');
+open(plot_handles.video.video_handle);
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 20, 1e-10, CGIterations, CGTol, plot_handles);
 
+close(plot_handles.video.video_handle);

@@ -1,4 +1,4 @@
-function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGIterations, CGTol)
+function [xn] = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measU1, measU2, measU3, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIterations, nHarmonics, newtonIterations, NewtonTol, CGIterations, CGTol, plot_handles)
 
 N = nHarmonics;
 nIter = nIterations;
@@ -27,7 +27,9 @@ residue = ones(newtonIterations,4);
 %  xn.refState_3.b0 = xn.refState_3.b0 + (xdag.b - xn.refState_3.b0)*ml;
 %  xn.refState_3.eta0 = xn.refState_3.eta0 + (xdag.eta - xn.refState_3.eta0)*ml;
 
-plot_handles = initParameterFigures(elements, false, xn);
+%plot_handles.paramfigs = initParameterFigures(elements, false, xn);
+
+plot_handles = initParameterFiguresVideo(elements, xn, 0, 0, plot_handles);
 
 % define parameter operators
 add = @(a,b) addParameters(a,b);
@@ -38,8 +40,11 @@ scalarMul = @(c,a) scalarMulParameters(c,a);
 for newtonIter = 1:newtonIterations
 
     % update figures
-    updateParameterFigures(plot_handles, xn);
+    %updateParameterFigures(plot_handles.paramfigs, xn);
     
+    % update figure for video
+    updateVideoFigure(xn.refState_1.s0, xn.refState_2.b0, projectParameters(xn).refState_3.eta0, plot_handles,newtonIter, 0);
+
     % in each Newton step we have to do a CG
     % A = K*K + P*P + alpha
     %xn = alignParameters(xn);
@@ -107,7 +112,7 @@ for newtonIter = 1:newtonIterations
     % now we need to solve Az = rhs
     A= @(xv) applyA(xv, alpha, elements, timeMesh, x0, beta, gamma, [omega1 omega2 omega3], nIter, N, referenceStates, useSolutionAsLinPoint);
     %[z, iters, res] = landweber(elements, A, rhs, xn, landweberStepsize, CGTol, 100);    
-    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, CGIterations, innerProduct, add, minus, scalarMul);
+    [z, iters, res] = conjugateGradient(elements, A, rhs, xn, CGTol, CGIterations, innerProduct, add, minus, scalarMul, plot_handles, newtonIter);
     %[z, iters, res] = gradientDescent(elements, A, rhs, xn, CGTol, 100);
     % the acutal residue is || K(z - x_n) + F(x_n) - h|| + \alpha_n || x_0
     % - z||

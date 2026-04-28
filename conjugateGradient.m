@@ -1,4 +1,4 @@
-function [x, iter, stopres] = conjugateGradient(elements, A, b, x0, tol, maxit, innerProduct, add, minus, scalarMul)
+function [x, iter, stopres] = conjugateGradient(elements, A, b, x0, tol, maxit, innerProduct, add, minus, scalarMul, plot_handles, newtonIter)
 x = x0;
 res = minus(b,A(x)); %Ax = Axn = y
 pk = res;
@@ -19,6 +19,8 @@ for iter = 1:maxit
     if stopres(iter) < tol
         break;
     end
+    
+    updateVideoFigure(x.refState_1.s0, x.refState_2.b0, projectParameters(x).refState_3.eta0, plot_handles, newtonIter, iter); % update figure in every iteration
 
     betak(iter) = rrN/rr;
 
