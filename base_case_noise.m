@@ -10,9 +10,12 @@ omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
 
-u3Amplitude = 10; % amplification of u3 only
+% specify the noise level (relative)
+noise = 0.001;
+
+u3Amplitude = 10;
 amplification = 1;
-MeasurementAmplification = 5; % this amplifies u1 and u2
+MeasurementAmplification = 5;
 
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
@@ -58,7 +61,7 @@ timeMesh.timeMesh3 = timeMeshf3;
 bcenter = [0,0];
 brad = 0.2;
 domain = [bcenter, brad];
-  
+
 % specify the mesh parameter
 meshSize = 0.01;
 
@@ -76,13 +79,10 @@ elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
 % specify the measurement manifold/discrete points on the boundary
-measurementEdge3 = 3; % positive quadrant edge
-measurementEdge4 = 2;
-first = (elements.edges(:,3) ~= measurementEdge3);
-second = (elements.edges(:,3) ~= measurementEdge4);
+measurementEdge = 3; % positive quadrant edge
 
 % fetch the boundary points
-elements.measurementPointsIdx = elements.edges(first,1);
+ elements.measurementPointsIdx = elements.edges((elements.edges(:,3) ~= measurementEdge),1);
 
 % do the measurement on the whole boundary
 %elements.measurementPointsIdx = elements.boundaryIdx;
@@ -196,13 +196,37 @@ measurement_u2_harmonics = zeros(size(squeeze(U2(N,:,:))));
 
 measurement_u3_harmonics = zeros(size(squeeze(U3(N,:,:))));
 
+% generate some Gaussian noise
+noiseVector = randn(3,N,size(elements.measurementPointsIdx,1)) + 1i.*randn(3,N,size(elements.measurementPointsIdx,1));
+M_b_meas = elements.tBM(elements.measurementPointsIdx,elements.measurementPointsIdx);
 for j=1:N
     measurement_u1_harmonics(j,elements.measurementPointsIdx) = squeeze(U1(N,j,elements.measurementPointsIdx)).';
+    
+    normalised_noise_u1 = 1./sqrt(squeeze(noiseVector(1,j,:))' * M_b_meas * squeeze(noiseVector(1,j,:))) * squeeze(noiseVector(1,j,:));
+    noise_u1 = noise * sqrt(measurement_u1_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u1_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u1;
+    
+    % additive white noise
+    measurement_u1_harmonics(j,elements.measurementPointsIdx) = measurement_u1_harmonics(j,elements.measurementPointsIdx) + noise_u1.';
+
 
     measurement_u2_harmonics(j,elements.measurementPointsIdx) = squeeze(U2(N,j,elements.measurementPointsIdx)).';
 
+    normalised_noise_u2 = 1./sqrt(squeeze(noiseVector(2,j,:))' * M_b_meas * squeeze(noiseVector(2,j,:))) * squeeze(noiseVector(2,j,:));
+    noise_u2 = noise * sqrt(measurement_u2_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u2_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u2;
+    
+    % additive white noise
+    measurement_u2_harmonics(j,elements.measurementPointsIdx) = measurement_u2_harmonics(j,elements.measurementPointsIdx) + noise_u2.';
+
+
     measurement_u3_harmonics(j,elements.measurementPointsIdx) = squeeze(U3(N,j,elements.measurementPointsIdx)).';
+
+    normalised_noise_u3 = 1./sqrt(squeeze(noiseVector(3,j,:))' * M_b_meas * squeeze(noiseVector(3,j,:))) * squeeze(noiseVector(3,j,:));
+    noise_u3 = noise * sqrt(measurement_u3_harmonics(j,elements.measurementPointsIdx) * M_b_meas * measurement_u3_harmonics(j,elements.measurementPointsIdx)') * normalised_noise_u3;
+    
+    % additive white noise
+    measurement_u3_harmonics(j,elements.measurementPointsIdx) = measurement_u3_harmonics(j,elements.measurementPointsIdx) + noise_u3.';
 end
+
 %%
 % pre compute the gradient operator
 p = elements.points;
@@ -448,7 +472,7 @@ if useSolutionAsLinPoint == true
                 squeeze(x0.refState_3.u0(plusidx+1,:));
         end
         u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m * 1/2;
-        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2 * 1/2;
+        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2* 1/2;
         u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3 * 1/2;
     end
     u1tt = calcSolution(timeMesh.timeMesh1, u1ttf, omega1);

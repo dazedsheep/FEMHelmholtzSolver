@@ -1,19 +1,16 @@
-%% Base case with a single phantom with different values in s,b,\eta
+%% secnario 1
 clear all
 
 % specify our reference states
-f1 = 70;    % Hz
-f2 = 50;    % Hz
+f1 = 40;    % Hz
+f2 = 60;    % Hz
 f3 = f1;    % frequency of third reference state = frequency of first reference state
-
 omega1 = 2*pi*f1;
 omega2 = 2*pi*f2;
 omega3 = 2*pi*f3;
-
-u3Amplitude = 10; % amplification of u3 only
+u3Amplitude = 15;
 amplification = 1;
-MeasurementAmplification = 5; % this amplifies u1 and u2
-
+MeasurementAmplification = 9;
 u1 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega1 .* t) + 2);
 u2 = @(t,x,y) amplification* (x.^2 + y.^2 + 1) .* (cos(omega2 .* t) + 2);
 u3 = @(t,x,y) u3Amplitude .* u1(t,x,y);
@@ -40,6 +37,7 @@ u3laplace = @(t,x,y) amplification.*u3Amplitude.*4.* (cos(omega3 .* t) + 2);
 u3tt = @(t,x,y) amplification.*u3Amplitude.*(x.^2 + y.^2 + 1) .* ((-1).*omega3.^2.*cos(omega3 .* t) );
 u3sqtt = @(t,x,y) amplification.^2.*u3Amplitude.^2.*(-2).*omega3.^2.*(x.^2 + y.^2 + 1).^2.*(2.*cos(omega3.*t) + cos(2.*omega3.*t));
 
+
 % specify our time space cylinder and calculate the triangle mesh in space
 % and the mesh in time
 timeMeshh = 1/(2*max([f1,f2,f3]));
@@ -58,7 +56,7 @@ timeMesh.timeMesh3 = timeMeshf3;
 bcenter = [0,0];
 brad = 0.2;
 domain = [bcenter, brad];
-  
+
 % specify the mesh parameter
 meshSize = 0.01;
 
@@ -66,7 +64,7 @@ meshSize = 0.01;
 [elements] = initializeMultiLeveLSolver(meshSize, domain);
 
 % prepare FEM matrices a priori
-[elements.M_t, elements.tBM, elements.M, elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
+[elements.M_t, elements.tBM,  elements.K, elements.rowK, elements.colK] = prepareFEMMatrices(elements);
 
 % pre-compute some useful things w.r.t. the triangular mesh
 fullboundaryIdx = elements.edges(:,1);
@@ -74,18 +72,6 @@ interiorIdx = setdiff(1:(size(elements.points,1)), fullboundaryIdx);
 elements.interiorIdx = interiorIdx;
 elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
-
-% specify the measurement manifold/discrete points on the boundary
-measurementEdge3 = 3; % positive quadrant edge
-measurementEdge4 = 2;
-first = (elements.edges(:,3) ~= measurementEdge3);
-second = (elements.edges(:,3) ~= measurementEdge4);
-
-% fetch the boundary points
-elements.measurementPointsIdx = elements.edges(first,1);
-
-% do the measurement on the whole boundary
-%elements.measurementPointsIdx = elements.boundaryIdx;
 
 % specify the parameters we want to reconstruct
 % boundary parameters (not reconstructed)
@@ -96,55 +82,28 @@ beta = 0;   % this is important check paper for clarification
 N = 6; % number of harmonics-1 we will compute
 nIter = 6;
 
-% define a phantom in our domain with different speed of sound, diffusivity
-% and nonlinearity parameter
-diffusivity = 0.05;
-values = [7]; % B/A of phantoms
-radii = [0.03];
-diffusivityPhantoms = [0.051]; % this allows to adjust the diffusivity for the phantoms
-speedOfSoundPhantoms = [10.11];
-centers = [0; 0.1];
+eta_values = [0]; % B/A of phantoms
+eta_radii = [0.03];
+eta_centers = [0.0;0.1];
 
-massDensity = 1000; %kg/m^3
+s_values = [2006]; % B/A of phantoms
+s_radii = [0.03];
+s_centers = [0.1;-0.1];
 
-speed_of_sound = 10;
+b_values = [50.25]; % B/A of phantoms
+b_radii = [0.03];
+b_centers = [-0.1;-0.1];
 
-N = 6; % number of harmonics-1 we will compute
-nIter = 6;
+eta = constructParameter(elements, eta_centers, eta_radii, eta_values, 0);
+s = constructParameter(elements, s_centers, s_radii, s_values, 2000);
+b = constructParameter(elements, b_centers, b_radii, b_values, 50);
 
-% create the space dependent parameters
-sourceValueDomain = 0; % B/A of domain
-
-eta = constructNonlinearityDivB(elements, massDensity, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii, values, sourceValueDomain, false); %nonlinearity scaled by 1/b
-
-s = constructSquaredSpeedOfSoundDivB(elements, speed_of_sound, speedOfSoundPhantoms, diffusivity, diffusivityPhantoms, centers, radii); % speed of sound scaled by 1/b
-
-b = constructReciprocalDiffusivity(elements, diffusivity, diffusivityPhantoms, centers, radii); % 1/b
 % the complex wavenumber, here we compute the square wave number
 kappasq = constructKappaReparameterized(elements, s, b, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 
 % since u^0_j  does not need to solve the PDE,...
 % construct the boundary excitations (same source just with different
 % frequency
-%% plot true parameters
-figure,
-plot_handles.plot_b_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),b, 'facecolor', 'interp'); 
-title('True b');
-view(0,90)  
-colorbar
-shading interp;
-figure,
-plot_handles.plot_s_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),s, 'facecolor', 'interp'); 
-title('True s');
-view(0,90)  
-colorbar
-shading interp;
-figure,
-plot_handles.plot_eta_1 = trisurf(elements.tri(:,1:3), elements.points(:,1), elements.points(:,2),eta, 'facecolor', 'interp'); 
-title('True \eta');
-view(0,90)  
-colorbar
-shading interp;
 
 %% prepare the source(s)
 sourceEdge = 1; % we impose the source on the boundary (negative quadrant)
@@ -165,7 +124,7 @@ sourceFrequency(boundaryPointsSourceIdx) = (gamma.*u1F(boundaryPointsSource(:,1)
 sourceConstant = zeros(size(elements.points,1),1);
 sourceConstant(boundaryPointsSourceIdx) = gamma.*u1C(boundaryPointsSource(:,1), boundaryPointsSource(:,2)) + dot(squeeze(u1Cgrad(boundaryPointsSource(:,1),boundaryPointsSource(:,2))).',boundaryPointsSourceNormals.').';
 
-%
+%%
 excitations = zeros(size(elements.points,1), N, 3);
 excitations(:,1,1) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,1) = MeasurementAmplification.*sourceFrequency;
@@ -173,18 +132,30 @@ excitations(:,1,2) = MeasurementAmplification.*sourceConstant;
 excitations(:,2,2) = MeasurementAmplification.*sourceFrequency;
 excitations(:,1,3) = u3Amplitude.*sourceConstant;
 excitations(:,2,3) = u3Amplitude.*sourceFrequency;
-%% compute the actual solutions
+%%
 [cN, U1, F1] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, squeeze(kappasq(:,:,1)), squeeze(excitations(:,:,1)), eta, b, nIter, N, 10^(-12));
 [cN, U2, F2] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega2, beta, gamma, squeeze(kappasq(:,:,2)), squeeze(excitations(:,:,2)), eta, b, nIter, N, 10^(-12));
 [cN, U3, F3] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega3, beta, gamma, squeeze(kappasq(:,:,3)), squeeze(excitations(:,:,3)), eta, b, nIter, N, 10^(-12));
-%
+%%
 % compute the solutions on the time - space mesh
 u1s = calcSolution(timeMesh.timeMesh1, squeeze(U1(N,:,:)), omega1);
 u2s = calcSolution(timeMesh.timeMesh2, squeeze(U2(N,:,:)), omega2);
 u3s = calcSolution(timeMesh.timeMesh3, squeeze(U3(N,:,:)), omega3);
 
-%% measure at the boundary
+%%
 % define \Sigma our measurement manifold/discrete points
+% the triangulation already defines the the edges of our doimain 1:4
+% (circle sectors)
+
+measurementEdge = 3; % positive quadrant edge
+
+% fetch the boundary points
+elements.measurementPointsIdx = elements.edges((elements.edges(:,3) == measurementEdge),1);
+
+%elements.measurementPointsIdx = measurementPointsIdx;
+
+% do the measurement on the whole boundary
+elements.measurementPointsIdx = elements.boundaryIdx;
 
 measurement_u1 = u1s(:,elements.measurementPointsIdx);
 measurement_u2 = u2s(:,elements.measurementPointsIdx);
@@ -203,8 +174,10 @@ for j=1:N
 
     measurement_u3_harmonics(j,elements.measurementPointsIdx) = squeeze(U3(N,j,elements.measurementPointsIdx)).';
 end
+
+
 %%
-% pre compute the gradient operator
+% pre compoute the gradient operator
 p = elements.points;
 t = elements.tri(:,1:3);
 
@@ -257,7 +230,7 @@ testu1boundary(1,boundaryPointsSourceIdx) = gamma.*u1(0, boundaryPointsSource(:,
 % for finer triangular meshes (high accuracy) these can be precomputed and
 % stored to speed up computation
 s0 = min(s).*ones(size(s));
-b0 = max(b).*ones(size(b));
+b0 = min(b).*ones(size(b));
 eta0 = zeros(size(eta));
 kappasq0 = constructKappaReparameterized(elements, s0, b0, [omega1 omega2 omega3], N); % compute all the complex wave numbers needed
 excitationsReferenceState = excitations;
@@ -352,6 +325,115 @@ if errorToSol > 1
     warning("Initial x0 is not near enough to the solution.");
 end
 
+%% if the error in the parameters is small we should have F(x_0) + DF(x_0)(x-x_0) \approx F(x)
+
+% first the obvious one
+
+%F(x) + DF(x_0)(x) = F(x)
+dx.ds = 0;
+dx.db = 0;
+dx.deta = 0;
+dx.excitation = zeros(size(elements.points,1), N);
+
+x0.refState_1.s0 = s0;
+x0.refState_1.b0 = b0;
+x0.refState_1.eta0 = eta0;
+x0.refState_1.u0 = squeeze(U0_1(N,:,:));
+x0.refState_1.F = U0_F1;
+x0.refState_1.kappa0 = constructKappaReparameterized(elements, x0.refState_1.s0, x0.refState_1.b0, omega1, N);
+
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, true);
+
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
+
+err = u1s + du - u1s;
+if max(max(abs(err))) > 10e-15
+    error("DF(x_0)(0) is not zero");
+end
+
+% now with a small pertubation
+perturbationCoeff = 0.9;
+perturbed_s = s.*perturbationCoeff;
+perturbed_b = b.*perturbationCoeff;
+perturbed_eta = 0;
+
+kappaPerturbed = constructKappaReparameterized(elements, perturbed_s, perturbed_b, omega1, N);
+
+[~, UPert, FPert] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, kappaPerturbed, squeeze(excitationsReferenceState(:,:,1)), perturbed_eta, perturbed_b, nIter, N, 10^(-12));
+
+dx.ds = s - perturbed_s;
+dx.db = b - perturbed_b;
+dx.deta = eta  - perturbed_eta;
+dx.excitation = zeros(size(elements.points,1), N);
+
+xs = x0;
+xs.refState_1.u0 = squeeze(UPert(N,:,:));
+xs.refState_1.F = FPert;
+xs.refState_1.s0 = perturbed_s;
+xs.refState_1.b0 = perturbed_b;
+xs.refState_1.eta0 = perturbed_eta;
+
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, dx, nIter, N, true);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
+[~, ldx.ds] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.ds).^2.');
+[~, ldx.db] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.db).^2.');
+[~, ldx.deta] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.deta).^2.');
+
+nm = sqrt(ldx.ds + ldx.db + ldx.deta);
+% for very small pertubations we should have F(x) \approx F(x0)
+diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
+diffU_time = calcSolution(timeMesh.timeMesh1, squeeze(diffU), omega1);
+for i = 1:size(timeMesh.timeMesh1,2)
+    [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
+end
+dn = trapz(timeMesh.timeMesh1,a);
+
+%% check the deviation in ds only
+perturbationCoeff = 0.7;
+perturbed_s = s.*perturbationCoeff;
+perturbed_b = b0;
+perturbed_eta = eta0;
+
+kappaPerturbed = constructKappaReparameterized(elements, perturbed_s, perturbed_b, omega1, N);
+
+[~, UPert, FPert] = solveWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, kappaPerturbed, squeeze(excitationsReferenceState(:,:,1)), perturbed_eta, perturbed_b, nIter, N, 10^(-12));
+
+dx.ds = s - perturbed_s;
+dx.db = b - perturbed_b;
+dx.deta = eta  - perturbed_eta;
+dx.excitation = zeros(size(elements.points,1), N);
+
+xs = x0;
+xs.refState_1.u0 = squeeze(UPert(N,:,:));
+xs.refState_1.F = FPert;
+xs.refState_1.s0 = perturbed_s;
+xs.refState_1.b0 = perturbed_b;
+xs.refState_1.eta0 = perturbed_eta;
+
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, dx, nIter, N, true);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
+[~, ldx.ds] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.ds).^2.');
+[~, ldx.db] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.db).^2.');
+[~, ldx.deta] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(dx.deta).^2.');
+
+nm = sqrt(ldx.ds + ldx.db + ldx.deta);
+% for very small pertubations we should have F(x) \approx F(x0)
+diffU = (UPert(N,:,:) - DU(N,:,:) - U1(N,:,:));
+diffU_time = calcSolution(timeMesh.timeMesh1, squeeze(diffU), omega1);
+for i = 1:size(timeMesh.timeMesh1,2)
+    [~, a(i)] = integrate_fun_trimesh(elements.opoints, elements.otri, abs(diffU_time(1,:)).^2);
+end
+dn = trapz(timeMesh.timeMesh1,a);
+harmonics = 0:(N-1);
+lapu0 = squeeze(kappaPerturbed(:,:,1)).'.*squeeze(UPert(N,:,:));
+calcLap0sol = calcSolution(timeMesh.timeMesh1, -harmonics.'.^2 .* lapu0, omega1);
+% calc also the adjoint state
+residual_1 = zeros(N,size(elements.points,1));
+residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
+[~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, xs.refState_1, residual_1, nIter, N);
+uadj = calcSolution(timeMesh.timeMesh1, squeeze(Uadj_1(N,:,:)), omega1);
+ads = trapz(timeMesh.timeMesh1, uadj.*(calcLap0sol));
+[~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
 
 %% theory tells us that we do not need that u0 is a solution of our PDE
 % prepare the harmonics of our reference states
@@ -385,7 +467,7 @@ if norm(norm(abs(u0_3sampledrecon - u3sampled),2),2) > 10e-8
     error('Fourier coefficients of reference state 3 do not match.');
 end
 
-%% compute the reference states and all the needed derivatives of them
+%%
 useSolutionAsLinPoint = true;
 
 if useSolutionAsLinPoint == true
@@ -447,9 +529,9 @@ if useSolutionAsLinPoint == true
                 conj(squeeze(x0.refState_3.u0(minusidx+1,:))) .* ...
                 squeeze(x0.refState_3.u0(plusidx+1,:));
         end
-        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m * 1/2;
-        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2 * 1/2;
-        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3 * 1/2;
+        u1sqttf(j+1,:) = -j.^2.*omega1^2.*p_m;
+        u2sqttf(j+1,:) = -j.^2.*omega2^2.*p_m2;
+        u3sqttf(j+1,:) = -j.^2.*omega3^2.*p_m3;
     end
     u1tt = calcSolution(timeMesh.timeMesh1, u1ttf, omega1);
     u1lap = calcSolution(timeMesh.timeMesh1, u1laplacef,omega1);
@@ -559,7 +641,26 @@ x0.refState_2.eta0 = eta0;
 x0.refState_3.s0 = s0;
 x0.refState_3.b0 = b0;
 x0.refState_3.eta0 = eta0;
+%% do some sanity checks for the adjoint
+dx.ds = s - x0.refState_1.s0;
+dx.db = b - b;
+dx.deta = eta  - x0.refState_1.eta0;
+dx.excitation = zeros(size(elements.points,1), N);
 
+[~, DU, ~] = solveLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, dx, nIter, N, true);
+du = calcSolution(timeMesh.timeMesh1, squeeze(DU(N,:,:)), omega1);
+
+residual_1(:,elements.measurementPointsIdx) = squeeze(DU(N,:,elements.measurementPointsIdx));
+[~, Uadj_1, ~] = solveAdjointLinearisedWesterveltMultiLevelBoundaryExcitation(elements, omega1, beta, gamma, x0.refState_1, residual_1, nIter, N);
+uadj = calcSolution(timeMesh.timeMesh1, squeeze((Uadj_1(N,:,:))), omega1);
+ads = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1LaplacianSampled);
+adb = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1ttSampled);
+adeta = trapz(timeMesh.timeMesh1, uadj.*referenceStates.u1sqttSampled);
+[adb1,ads1, adeta1] = calcAdjointStates(squeeze((Uadj_1(N,:,:))), omega1, timeMesh.timeMesh1, referenceStates.u1LaplacianSampled, referenceStates.u1ttSampled, referenceStates.u1sqttSampled);
+[~,int_ds] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.ds.*ads);
+[~,int_db] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.db.*adb);
+[~,int_deta] = integrate_fun_trimesh(elements.opoints, elements.otri, dx.deta.*adeta);
+zz = -int_ds + int_db - int_deta
 
 %%
 % since we have the solutions, check how far from the solution our
@@ -571,11 +672,44 @@ u3dist = abs(u3s - u3sampled).^2;
 [~,d2] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh2,u2dist,1));
 [~,d3] = integrate_fun_trimesh(elements.opoints, elements.otri, trapz(timeMesh.timeMesh3,u3dist,1));
 %%
-CGTol = 1e-50;
-
+CGTol = 1e-60;
 xdag.s = s;
 xdag.b = b;
 xdag.eta = eta;
-CGIterations = 150;
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol);
 
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGTol,xdag);
+%%
+point = [0.0;0.05];
+
+[v,idx] = min(sum((elements.points - point(:)').^2,2));
+
+node = [elements.points(idx,1);elements.points(idx,2)];
+
+T = 1/f2;
+% sampling frequency in time
+Fs = 1/T * 2 * (N);
+omega = omega1;
+U = squeeze(U1(N,:,:));
+
+Ns = 2000;
+pC = zeros(1,Ns);
+for m=0:(N-1)
+    pC = pC + U(m+1,idx) .* exp(1i.*m.*omega.*(0:(Ns-1))*1/Fs);
+end
+
+MaxBins = 5;
+P0 = max(max(u2s(:,:)));
+
+window = hanning(Ns);
+freq =  Fs/Ns*(0:(Ns/2));
+y = abs(fft(window'.*real(pC)))/Ns;
+y1 = y(1:Ns/2+1);
+y1(2:end-1) = 2*y1(2:end-1);
+shiftedTF = fftshift(fft(real(pC)))/Ns;
+TFdB = 10*log10(y1/P0);
+fscaling = 10^3;
+M = min(MaxBins, Ns/2 + 1);
+xaxis = freq./fscaling;
+figure, plot(xaxis, TFdB(1:Ns/2+1))
+xlabel("Frequency [kHz]")
+ylabel("P/P0 [dB]")
