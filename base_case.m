@@ -76,7 +76,7 @@ elements.boundaryIdx = fullboundaryIdx;
 elements.boundaryNormals = 1./sqrt(sum(elements.points(fullboundaryIdx,:).^2,2)).*elements.points(fullboundaryIdx,:); % our center is (0,0), so -> normalisation suffices
 
 % specify the measurement manifold/discrete points on the boundary
-measurementEdge3 = 1; % positive quadrant edge
+measurementEdge3 = 3; % positive quadrant edge
 measurementEdge4 = 2;
 first = (elements.edges(:,3) ~= measurementEdge3);
 second = (elements.edges(:,3) ~= measurementEdge4);
