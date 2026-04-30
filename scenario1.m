@@ -629,8 +629,8 @@ xdag.b = b;
 xdag.eta = eta;
 CGIterations = 50;
 plot_handles.video.video_handle = VideoWriter(videoFileName, 'MPEG-4');
+plot_handles.video.video_handle.FrameRate = 150;
 open(plot_handles.video.video_handle);
-
-xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 400, 1e-10, CGIterations, CGTol, plot_handles);
+xsol = frozenNewtonMethod(elements, timeMesh, x0, referenceStates, beta, gamma, measurement_u1_harmonics, measurement_u2_harmonics, measurement_u3_harmonics, omega1, omega2, omega3, excitations, useSolutionAsLinPoint, nIter, N, 18, 1e-10, CGIterations, CGTol, plot_handles);
 
 close(plot_handles.video.video_handle);
