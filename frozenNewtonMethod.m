@@ -13,7 +13,7 @@ xn = x0; % start at x0
 
 residue = ones(newtonIterations,4);
 
-% for testint purposes
+% for testing purposes
 % ml = 0.1;
 %  xn.refState_1.s0 = xn.refState_1.s0 + (xdag.s - xn.refState_1.s0)*ml;
 %  xn.refState_1.b0 = xn.refState_1.b0 + (xdag.b - xn.refState_1.b0)*ml;
